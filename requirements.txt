@@ -1,0 +1,4 @@
+fastai
+jupyterlab
+jupyterlab-quarto
+nbdev
