@@ -1,5 +1,9 @@
 biopython
 fastai
+ipywidgets
 jupyterlab
 jupyterlab-quarto
+lxml
 nbdev
+requests
+tqdm
