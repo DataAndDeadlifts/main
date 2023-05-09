@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "llm-mito-scanner"
+  site-url: "https://DataAndDeadlifts.github.io/llm-mito-scanner"
+  description: "An LLM trained to identify sequences of DNA likely related to Mitochondrial function."
+  repo-branch: main
+  repo-url: "https://github.com/DataAndDeadlifts/llm-mito-scanner"

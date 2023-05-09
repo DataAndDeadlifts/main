@@ -1,0 +1,16 @@
+[
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "source\n\nfoo\n\n foo ()"
+  },
+  {
+    "objectID": "make-genome-training-data.html",
+    "href": "make-genome-training-data.html",
+    "title": "features.genome",
+    "section": "",
+    "text": "import gzip\nfrom pathlib import Path\n\n\n\nget_genome_file_pointer\n\n get_genome_file_pointer (path)\n\n\nsource\n\n\nfoo\n\n foo ()\n\n\n!nbdev_clean"
+  }
+]

@@ -1,0 +1,5 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_make-genome-training-data.ipynb

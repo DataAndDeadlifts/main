@@ -1,3 +1,4 @@
+biopython
 fastai
 jupyterlab
 jupyterlab-quarto

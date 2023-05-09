@@ -1,3 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://DataAndDeadlifts.github.io/llm-mito-scanner/core.html</loc>
+    <lastmod>2023-05-08T19:56:10.684Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DataAndDeadlifts.github.io/llm-mito-scanner/make-genome-training-data.html</loc>
+    <lastmod>2023-05-08T20:21:06.864Z</lastmod>
+  </url>
 </urlset>
