@@ -16,8 +16,7 @@ def break_genome_into_fasta_files(
     write_path: Path,
 ):
     """
-    Insert the fasta-annotated sequence records from our reference genome 
-    into our sqlite3 database.
+    Breakdown the reference genome fasta file into individual files.
     """
     for i, seq_record in enumerate(tqdm(SeqIO.parse(genome_file_path, "fasta"))):
         seq_record_write_path = write_path / f"{seq_record.id}.fasta"
