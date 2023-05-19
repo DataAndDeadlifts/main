@@ -2,6 +2,7 @@ data
 venv
 config.yml
 llm-mito-scanner.code-workspace
+nbs/.ipynb_checkpoints/*-checkpoint.ipynb
 
 # From https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
