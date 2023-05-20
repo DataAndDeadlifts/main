@@ -3,9 +3,11 @@
 # %% auto 0
 __all__ = ['parse_annotation_value', 'parse_annotation_attribute_values', 'parse_entrez_gff3_annotation_attributes',
            'get_gene_id_from_attribute_dict', 'get_sequence_from_file', 'get_gene_row_from_annotation_group',
-           'get_row_sequence', 'annotate_token', 'annotate_sequence', 'get_mrna_exon_idx', 'get_annotation_exon_idx',
-           'get_mrna_annotation', 'make_cds_annotation_map', 'get_cds_protein_id', 'get_cds_sequence_idx',
-           'get_cds_rows', 'get_cds_annotation_idx', 'update_annotation_with_cds_annotation_idx']
+           'get_row_sequence', 'annotate_token', 'annotate_sequence', 'validate_gene_annotation', 'get_mrna_exon_idx',
+           'get_mrna_annotations', 'get_mrna_annotation', 'detect_mrna_character', 'validate_mrna_annotations',
+           'make_cds_annotation_map', 'get_cds_protein_id', 'get_cds_sequence_idx', 'get_cds_rows',
+           'get_cds_annotation_idx', 'update_annotation_with_cds_annotation_idx', 'validate_cds_annotations',
+           'write_annotations', 'make_annotations_from_annotation_group', 'make_training_data_from_annotation_file']
 
 # %% ../../nbs/03_build-translation-training-data.ipynb 3
 import pandas as pd
@@ -45,7 +47,8 @@ def parse_annotation_attribute_values(attribute_values: str) -> object:
     if ":" in value_list[0]:
         attribute_values = {}
         for parsed_value in parsed_values:
-            attribute_values.update(parsed_value)
+            if isinstance(parsed_value, dict):
+                attribute_values.update(parsed_value)
     # Just a list within a list
     else:
         attribute_values = parsed_values
@@ -119,7 +122,7 @@ def get_row_sequence(
     sequence_record.annotations = sequence_row.attributes_dict
     return sequence_record
 
-# %% ../../nbs/03_build-translation-training-data.ipynb 36
+# %% ../../nbs/03_build-translation-training-data.ipynb 34
 def annotate_token(token: str, token_type: str, token_position: int = None):
     if token_type == "nucleotide":
         return f"[N]{token}"
@@ -142,24 +145,30 @@ def annotate_sequence(sequence: list[str], token_type: str):
     )
     return sequence_annotation
 
-# %% ../../nbs/03_build-translation-training-data.ipynb 40
-def get_mrna_exon_idx(mrna_row: pd.Series, exon_rows: pd.DataFrame) -> set[int]:
+# %% ../../nbs/03_build-translation-training-data.ipynb 36
+def validate_gene_annotation(gene_row: pd.Series, annotation: list[str]):
+    gene_length = gene_row.end - gene_row.start + 1
+    assert len(annotation) == gene_length
+
+# %% ../../nbs/03_build-translation-training-data.ipynb 39
+def get_mrna_exon_idx(gene_row: pd.Series, mrna_row: pd.Series, exon_rows: pd.DataFrame) -> set[int]:
     exon_idx = set()
     # For each exon, mark sequence as exonic
     for idx, ex_row in exon_rows.iterrows():
         # Normalize the index values to the mrna sequence zero-index
-        rel_start = ex_row.start - mrna_row.start
-        rel_end = ex_row.end - mrna_row.start + 1
+        rel_start = ex_row.start - gene_row.start
+        rel_end = ex_row.end - gene_row.start + 1
         exon_idx.update(list(range(rel_start, rel_end)))
     # Get intron idx
     intron_idx = [i for i in range(mrna_row.start, mrna_row.end + 1) if i not in exon_idx]
     return exon_idx
 
 
-def get_annotation_exon_idx(
+def get_mrna_annotations(
+    gene_row: pd.Series,
     annotations: pd.DataFrame, 
     reference_sequence: SeqIO.SeqRecord
-):
+) -> pd.DataFrame:
     mrna_rows = annotations[annotations.type == "mRNA"]
     if mrna_rows.shape[0] == 0:
         return
@@ -181,45 +190,94 @@ def get_annotation_exon_idx(
     )
     # Now, assign exons to their mRNA sequences
     mrna_rows.loc[:, 'exon_idx'] = mrna_rows.apply(
-        lambda row: get_mrna_exon_idx(row, exon_rows[exon_rows.parent_annotation_id == row.annotation_id]),
+        lambda row: get_mrna_exon_idx(gene_row, row, exon_rows[exon_rows.parent_annotation_id == row.annotation_id]),
         axis=1
     )
     return mrna_rows
 
-# %% ../../nbs/03_build-translation-training-data.ipynb 43
+# %% ../../nbs/03_build-translation-training-data.ipynb 41
 def get_mrna_annotation(gene_row: pd.Series, base_annotation: list[str], mrna_row: pd.Series) -> list[str]:
     mrna_start_norm = mrna_row.start - gene_row.start
     mrna_end_norm = mrna_row.end + 1 - gene_row.start
     mrna_annotation = base_annotation.copy()
+    # print(mrna_start_norm, mrna_end_norm)
     mrna_annotation[mrna_start_norm: mrna_end_norm] = ["[intron]"] * (mrna_end_norm - mrna_start_norm)
     assert len(mrna_annotation) == len(base_annotation)
     exon_idx = mrna_row.exon_idx
     mrna_annotation = ["[exon]" if (i in exon_idx) else val for i, val in enumerate(mrna_annotation)]
     return mrna_annotation
 
+# %% ../../nbs/03_build-translation-training-data.ipynb 44
+# Validate
+def detect_mrna_character(character: str) -> bool:
+    return "[A]" in character or character in ['[intron]', '[exon]']
+
+
+def validate_mrna_annotations(gene_row: pd.Series, mrna_rows: pd.DataFrame, annotations: pd.Series):
+    """
+    Test for the following;
+    
+    For each annotation:
+    1. There must be as much non-nucleotide annotations as there are mRNA nucleotides
+    """
+    # The +1 is to account for python zero-indexing
+    # Check [1]
+    gene_length = gene_row.end + 1 - gene_row.start
+    annotation_lengths = annotations.apply(len).rename("annotation_length")
+    if not (annotation_lengths == gene_length).all():
+        raise AssertionError(f"Annotations are not the same length of the gene, {annotations.apply(len)} - {gene_length}")
+    # Check [2]
+    annotation_mrna_length = annotations.apply(
+        lambda annotation: [char for char in annotation if detect_mrna_character(char)]
+    ).apply(len).rename("annotation_length")
+    mrna_lengths = (mrna_rows.end + 1 - mrna_rows.start)
+    mrna_lengths.name = "mrna_length"
+    mrna_lengths.index = mrna_rows.annotation_id
+    mrna_validation = mrna_lengths.to_frame().merge(
+        annotation_mrna_length, 
+        left_index=True, 
+        right_index=True
+    )
+    mrna_validation.loc[:, 'valid'] = mrna_validation.mrna_length == mrna_validation.annotation_length
+    return mrna_validation[mrna_validation.valid == True].index
+    # if not mrna_validation.valid.all():
+    #     raise AssertionError(f"Some mrna are not the same length as the source mRNA; {mrna_validation}")
+
 # %% ../../nbs/03_build-translation-training-data.ipynb 47
-def make_cds_annotation_map(annotation_idx: list[(int, int)], protein_id: str, protein_path: Path):
+def make_cds_annotation_map(annotation_idx: list[(int, int)], protein_id: str, protein_path: Path) -> dict:
     """
     Get our protein annotation, indexed to be applied to the base annotation.
     """
     # Load protein sequence
-    protein = next(SeqIO.parse(protein_path / f"{protein_id}.fasta", "fasta"))
-    protein_annotations = []
-    for char in list(protein.seq):
-        char_multiple = char * 3
-        char_annotation = [f"[A]-{char}-{i+1}" for i, char in enumerate(char_multiple)]
-        protein_annotations.extend(char_annotation)
-    protein_annotations.extend([f"[A]-[stop]-{i+1}" for i in range(3)])
-    idx_list = []
-    for idx in annotation_idx:
-        idx_index = reversed(list(range(idx[0], idx[1])))
-        idx_list.extend(idx_index)
-    annotation_map = pd.Series(idx_list, name='index').to_frame()
-    annotation_map.loc[:, 'annotation'] = protein_annotations
-    return annotation_map.set_index("index").annotation.to_dict()
-
+    try:
+        protein = next(SeqIO.parse(protein_path / f"{protein_id}.fasta", "fasta"))
+        protein_annotation_length = (len(protein.seq) * 3) + 3
+        protein_annotations = []
+        for char in list(protein.seq):
+            char_multiple = char * 3
+            char_annotation = [f"[A]-{char}-{i+1}" for i, char in enumerate(char_multiple)]
+            protein_annotations.extend(char_annotation)
+        idx_list = []
+        for idx in annotation_idx:
+            idx_index = reversed(list(range(idx[0], idx[1])))
+            idx_list.extend(idx_index)
+        if len(protein_annotations) == (len(idx_list) - 3):
+            protein_annotations.extend([f"[A]-[stop]-{i+1}" for i in range(3)])
+        else:
+            # bad protein cds annotation
+            print(f"Protein {protein_id} has bad cds annotations")
+            return None
+        annotation_map = pd.Series(idx_list, name='index').to_frame()
+        annotation_map.loc[:, 'annotation'] = protein_annotations
+        annotation_map_dict = annotation_map.set_index("index").annotation.to_dict()
+        return annotation_map_dict
+    except Exception as e:
+        raise Exception(f"Failed processing annotation for protein {protein_id}") from e
+        
 
 def get_cds_protein_id(cds_rows: pd.DataFrame) -> str:
+    if isinstance(cds_rows, pd.Series):
+        cds_rows = cds_rows.to_frame().T
     protein_id_list = cds_rows.protein_id.unique().tolist()
     if len(protein_id_list) == 0:
         raise ValueError("For some reason this group of CDS don't code for protein?")
@@ -229,8 +287,8 @@ def get_cds_protein_id(cds_rows: pd.DataFrame) -> str:
 
 
 def get_cds_sequence_idx(cds_rows: pd.DataFrame, reference_sequence: SeqIO.SeqRecord) -> list[(int, int)]:
-    if cds_rows.shape[0] == 0:
-        return
+    if isinstance(cds_rows, pd.Series):
+        cds_rows = cds_rows.to_frame().T
     strand = cds_rows.strand.unique().tolist()[0]
     cds_rows = cds_rows.sort_values("start", ascending=strand == "+")
     cds_length = (cds_rows.end - cds_rows.start).sum()
@@ -255,10 +313,18 @@ def get_cds_annotation_idx(
     reference_sequence: SeqIO.SeqRecord,
     protein_path: Path
 ):
-    mrna_rows.loc[:, 'cds_idx'] = mrna_rows.apply(lambda row: get_cds_sequence_idx(
-        cds_rows.loc[row.annotation_id, :], 
-        reference_sequence
-    ), axis=1)
+    try:
+        mrna_rows.loc[:, 'cds_idx'] = mrna_rows.apply(
+            lambda row: get_cds_sequence_idx(
+                cds_rows.loc[row.annotation_id, :], 
+                reference_sequence
+            ), 
+            axis=1
+        )
+    except TypeError as e:
+        display(mrna_rows)
+        display(cds_rows)
+        raise e
     # Norm the idx to the gene indices
     mrna_rows.loc[:, 'cds_idx_norm'] = mrna_rows.cds_idx.apply(lambda idx_list: [(idx[0] - gene_row.start, idx[1] - gene_row.start + 1) for idx in idx_list])
     # Get protein ids
@@ -284,3 +350,217 @@ def update_annotation_with_cds_annotation_idx(annotation: list[str], cds: dict):
     for idx, value in cds.items():
         new_annotation[idx] = value
     return new_annotation
+
+# %% ../../nbs/03_build-translation-training-data.ipynb 53
+# Validate
+def validate_cds_annotations(cds_rows: pd.DataFrame, annotations: pd.Series):
+    """
+    Test for the following;
+    
+    For each annotation:
+    1. There must be as many amino acid annotations as there are CDS nucleotides
+    """
+    # The +1 is to account for python zero-indexing
+    # Check [1]
+    cds_row_lengths = (cds_rows.end + 1 - cds_rows.start).rename("cds_length").reset_index(drop=False).groupby("parent_annotation_id").sum()
+    annotation_cds_counts = annotations.apply(lambda annotation: len([ann for ann in annotation if ann.startswith("[A]")])).rename("annotation_length")
+    cds_validation = cds_row_lengths.merge(annotation_cds_counts, left_index=True, right_index=True)
+    cds_validation.loc[:, 'valid'] = cds_validation.cds_length == cds_validation.annotation_length
+    return cds_validation[cds_validation.valid == True].index
+
+# %% ../../nbs/03_build-translation-training-data.ipynb 56
+def write_annotations(
+    write_path: Path, 
+    annotation_id: str, 
+    gene_id: str,
+    genomic_annotation: str,
+    protein_annotations: pd.Series
+):
+    """
+    Write the annotations as strings, with space separators
+    """
+    annotation_write_path = write_path / annotation_id / gene_id
+    if not annotation_write_path.exists():
+        annotation_write_path.mkdir(parents=True)
+    with (annotation_write_path / "gene.txt").open("w+") as f:
+        f.write(genomic_annotation)
+    for idx, annotation in protein_annotations.items():
+        with (annotation_write_path / f"{idx}.txt").open("w+") as f:
+            f.write(annotation)
+
+# %% ../../nbs/03_build-translation-training-data.ipynb 60
+def make_annotations_from_annotation_group(
+    gene_id_annotations: pd.DataFrame, 
+    reference_sequence: SeqIO.SeqRecord, 
+    protein_path: Path,
+    training_data_path: Path,
+    annotation_id: str
+):
+    """
+    1. Get gene_row
+    2. Get gene SeqRecord
+    3. Get the baseline annotation
+    4. Get the mRNA annotations
+    5. Get the protein annotations
+    6. Write baseline, protein annotations
+    """
+    # [1]
+    try:
+        gene_row = get_gene_row_from_annotation_group(gene_id_annotations)
+    except ValueError:
+        # There aren't any gene rows
+        print(f"There aren't any `gene` rows for gene {gene_id_annotations.gene_id.unique()}")
+        return
+    # [2]
+    gene_sequence_record = get_sequence_from_file(
+        int(gene_row.start), int(gene_row.end), gene_row.strand, 
+        reference_sequence
+    )
+    # [3]
+    try:
+        gene_annotation = annotate_sequence(
+            list(gene_sequence_record.seq),
+            "nucleotide"
+        )
+        try:
+            validate_gene_annotation(gene_row, gene_annotation)
+        except AssertionError:
+            print(f"Could not validate gene annotation for gene: {gene_row.gene_id}")
+    except Exception as e:
+        raise Exception(f"[3] Failed getting the baseline gene annotation for gene: {{gene_row.gene_id}}")
+    # [4]
+    try:
+        gene_mrna_rows = get_mrna_annotations(
+            gene_row,
+            gene_id_annotations,
+            reference_sequence
+        )
+        gene_mrna_annotations = gene_mrna_rows.apply(
+            lambda row: get_mrna_annotation(
+                gene_row, 
+                gene_annotation,
+                row
+            ),
+            axis=1
+        )
+        gene_mrna_annotations.index = gene_mrna_rows.annotation_id
+        valid_mrna_ids = validate_mrna_annotations(gene_row, gene_mrna_rows, gene_mrna_annotations)
+        if valid_mrna_ids.shape[0] == 0:
+            print(f"Could not get any valid mRNA for gene: {gene_row.gene_id}")
+            return
+        gene_mrna_annotations = gene_mrna_annotations[gene_mrna_annotations.index.isin(valid_mrna_ids)]
+    except Exception as e:
+        raise Exception(f"[4] Failed getting mRNA annotations for gene: {{gene_row.gene_id}}")
+    # [5]
+    try:
+        gene_mrna_cds_rows = get_cds_rows(gene_id_annotations)
+        gene_mrna_cds_sequences = get_cds_annotation_idx(
+            gene_row, 
+            gene_mrna_rows, 
+            gene_mrna_cds_rows, 
+            reference_sequence,
+            protein_path
+        )
+        gene_mrna_cds_annotations = pd.Series()
+        for anno_id, cds_idx in gene_mrna_cds_sequences.items():
+            if cds_idx is None:
+                continue
+            gene_mrna_cds_annotations.loc[anno_id] = update_annotation_with_cds_annotation_idx(
+                gene_mrna_annotations.loc[anno_id], 
+                cds_idx
+            )
+        gene_mrna_cds_annotations.name = "annotations"
+        valid_cds_annotations = validate_cds_annotations(
+            gene_mrna_cds_rows, 
+            gene_mrna_cds_annotations
+        )
+        if valid_cds_annotations.shape[0] == 0:
+            print(f"Could not get any valid cds annotations for gene: {gene_row.gene_id}")
+            return
+        gene_mrna_cds_annotations = gene_mrna_cds_annotations[
+            gene_mrna_cds_annotations.index.isin(valid_cds_annotations)
+        ]
+    except Exception as e:
+        raise Exception(f"[5] Failed getting protein annotations for gene: {{gene_row.gene_id}}")
+    # [6]
+    try:
+        gene_annotation_str = " ".join(gene_annotation)
+        gene_mrna_protein_annotations_str = gene_mrna_cds_annotations.apply(lambda anno: " ".join(anno))
+        write_annotations(
+            write_path=training_data_path, 
+            annotation_id=annotation_id, 
+            gene_id=gene_row.gene_id,
+            genomic_annotation=gene_annotation_str,
+            protein_annotations=gene_mrna_protein_annotations_str
+        )
+    except Exception as e:
+        raise Exception(f"[6] Failed writing annotations for gene {gene_row.gene_id}") from e
+
+# %% ../../nbs/03_build-translation-training-data.ipynb 66
+def make_training_data_from_annotation_file(args: dict):
+    """
+    0. Get inputs
+    1. Identify annotation id
+    2. Load annotations as Dataframe
+    3. Parse the annotations dict
+    4. Add columns with info from annotations
+        1. gene_id
+        2. annotation_id
+        3. parent_annotation_id
+        4. protein_id
+    5. Make the gene_id to protein_id dataframe
+    6. Filter annotations dataframe to only gene_ids that produce protein
+    7. Load the reference SeqRecord for the annotation
+    8. Group annotations on gene_id
+    9. Construct annotations
+        1. Get gene_row
+        2. Get gene SeqRecord
+        3. Get the baseline annotation
+        4. Get the mRNA annotations
+        5. Get the protein annotations
+        5. Write baseline, protein annotations
+    """
+    # [0]
+    genome_path = args.get("genome_path")
+    protein_path = args.get("protein_path")
+    training_data_path = args.get("training_data_path")
+    annotation_file_path = args.get("annotation")
+    # [1]
+    annotation_id = annotation_file_path.stem
+    # [2]
+    annotations = pd.read_csv(annotation_file_path)
+    # print(f"Processing {annotations.shape[0]} annotations")
+    # [3]
+    annotations.loc[:, 'attributes_dict'] = annotations.attributes.apply(parse_entrez_gff3_annotation_attributes)
+    # [4]
+    annotations.loc[:, 'annotation_id'] = annotations.attributes_dict.apply(lambda d: d.get("ID"))
+    annotations.loc[:, 'gene_id'] = annotations.attributes_dict.apply(get_gene_id_from_attribute_dict)
+    annotations.loc[:, 'protein_id'] = annotations.attributes_dict.apply(lambda d: d.get("protein_id"))
+    annotations.loc[:, 'parent_annotation_id'] = annotations.attributes_dict.apply(lambda d: d.get("Parent"))
+    # display(annotations[["attributes_dict", "annotation_id", "gene_id", "protein_id", "parent_annotation_id"]])
+    # [5]
+    annotations_gene_to_protein_map = annotations[['gene_id', 'protein_id']].dropna(how='any').drop_duplicates().reset_index(drop=True)
+    if annotations_gene_to_protein_map.shape[0] > 0:
+        if not (training_data_path / annotation_id).exists():
+            (training_data_path / annotation_id).mkdir()
+        annotations_gene_to_protein_map.to_csv(training_data_path / annotation_id / f"gene_to_protein_map.csv", index=False)
+        # No genes to process
+        return
+    # [6]
+    annotation_genes_that_encode_protein = annotations_gene_to_protein_map.gene_id.unique()
+    annotations_genes = annotations[annotations.gene_id.isin(annotation_genes_that_encode_protein)]
+    # [7]
+    annotation_reference_path = genome_path / f"{annotation_id}.fasta"
+    annotation_reference_sequence = next(SeqIO.parse(annotation_reference_path.resolve(), "fasta"))
+    # [8]
+    gene_annotations_grouped = annotations_genes.groupby("gene_id")
+    # [9]
+    gene_annotations_grouped.apply(
+        lambda gene_annotations: make_annotations_from_annotation_group(
+            gene_id_annotations=gene_annotations, 
+            reference_sequence=annotation_reference_sequence, 
+            protein_path=protein_path,
+            training_data_path=training_data_path,
+            annotation_id=annotation_id
+        )
+    )
