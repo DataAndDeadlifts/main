@@ -422,12 +422,12 @@ def make_annotations_from_annotation_group(
             list(gene_sequence_record.seq),
             "nucleotide"
         )
-        try:
-            validate_gene_annotation(gene_row, gene_annotation)
-        except AssertionError:
-            print(f"Could not validate gene annotation for gene: {gene_row.gene_id}")
     except Exception as e:
         raise Exception(f"[3] Failed getting the baseline gene annotation for gene: {{gene_row.gene_id}}")
+    try:
+        validate_gene_annotation(gene_row, gene_annotation)
+    except AssertionError:
+        print(f"Could not validate gene annotation for gene: {gene_row.gene_id}")
     # [4]
     try:
         gene_mrna_rows = get_mrna_annotations(
@@ -451,6 +451,8 @@ def make_annotations_from_annotation_group(
         gene_mrna_annotations = gene_mrna_annotations[gene_mrna_annotations.index.isin(valid_mrna_ids)]
     except Exception as e:
         raise Exception(f"[4] Failed getting mRNA annotations for gene: {{gene_row.gene_id}}")
+    if gene_mrna_annotations.shape[0] == 0:
+        return
     # [5]
     try:
         gene_mrna_cds_rows = get_cds_rows(gene_id_annotations)
