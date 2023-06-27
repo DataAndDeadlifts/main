@@ -1,0 +1,6 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_breakdown-genome-to-fasta.ipynb
+      - 01_get-mitochondrial-sequences
