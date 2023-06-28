@@ -110,6 +110,30 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                       'llm_mito_scanner/features/validation.py'),
                                                       'llm_mito_scanner.features.validation.validate_gene_and_protein': ( 'validate-sequences.html#validate_gene_and_protein',
                                                                                                                           'llm_mito_scanner/features/validation.py')},
+            'llm_mito_scanner.pre_training.transform': { 'llm_mito_scanner.pre_training.transform.extract_accession_sequence_records': ( '01 '
+                                                                                                                                         'transform.pre_training.html#extract_accession_sequence_records',
+                                                                                                                                         'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.get_accession_sequence_record': ( '01 '
+                                                                                                                                    'transform.pre_training.html#get_accession_sequence_record',
+                                                                                                                                    'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.get_genomic_fasta_path': ( '01 '
+                                                                                                                             'transform.pre_training.html#get_genomic_fasta_path',
+                                                                                                                             'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.get_latest_annotation_path': ( '01 '
+                                                                                                                                 'transform.pre_training.html#get_latest_annotation_path',
+                                                                                                                                 'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.get_latest_feature_table_path': ( '01 '
+                                                                                                                                    'transform.pre_training.html#get_latest_feature_table_path',
+                                                                                                                                    'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.read_latest_feature_table': ( '01 '
+                                                                                                                                'transform.pre_training.html#read_latest_feature_table',
+                                                                                                                                'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.write_dna_feature_sequences': ( '01 '
+                                                                                                                                  'transform.pre_training.html#write_dna_feature_sequences',
+                                                                                                                                  'llm_mito_scanner/pre_training/transform.py'),
+                                                         'llm_mito_scanner.pre_training.transform.yield_dna_feature_sequences': ( '01 '
+                                                                                                                                  'transform.pre_training.html#yield_dna_feature_sequences',
+                                                                                                                                  'llm_mito_scanner/pre_training/transform.py')},
             'llm_mito_scanner.training.foundation': { 'llm_mito_scanner.training.foundation.TransformersTokenizer': ( 'training.html#transformerstokenizer',
                                                                                                                       'llm_mito_scanner/training/foundation.py'),
                                                       'llm_mito_scanner.training.foundation.TransformersTokenizer.__init__': ( 'training.html#transformerstokenizer.__init__',
