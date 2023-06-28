@@ -46,7 +46,13 @@ d = { 'settings': { 'branch': 'main',
                                                         'llm_mito_scanner.data.pre_training.dna.validate_written_genome_fasta_files': ( '01 '
                                                                                                                                         'data.pre_training.dna.html#validate_written_genome_fasta_files',
                                                                                                                                         'llm_mito_scanner/data/pre_training/dna.py')},
-            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.get_feature_dbxref_xref': ( '01 '
+            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.extract_all_relationships': ( '01 '
+                                                                                                                        'data.transcription.html#extract_all_relationships',
+                                                                                                                        'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_all_relationships': ( '01 '
+                                                                                                                    'data.transcription.html#get_all_relationships',
+                                                                                                                    'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_feature_dbxref_xref': ( '01 '
                                                                                                                       'data.transcription.html#get_feature_dbxref_xref',
                                                                                                                       'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_feature_dbxrefs': ( '01 '
@@ -70,9 +76,9 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.process_gene_mrna_pair': ( '01 '
                                                                                                                      'data.transcription.html#process_gene_mrna_pair',
                                                                                                                      'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.shard_features': ( '01 '
-                                                                                                             'data.transcription.html#shard_features',
-                                                                                                             'llm_mito_scanner/data/transcription.py')},
+                                                     'llm_mito_scanner.data.transcription.shard_relationships': ( '01 '
+                                                                                                                  'data.transcription.html#shard_relationships',
+                                                                                                                  'llm_mito_scanner/data/transcription.py')},
             'llm_mito_scanner.features.annotations': { 'llm_mito_scanner.features.annotations.annotate_sequence': ( 'build-translation-training-data.html#annotate_sequence',
                                                                                                                     'llm_mito_scanner/features/annotations.py'),
                                                        'llm_mito_scanner.features.annotations.annotate_token': ( 'build-translation-training-data.html#annotate_token',
