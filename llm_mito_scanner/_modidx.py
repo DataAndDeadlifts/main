@@ -23,6 +23,18 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                'llm_mito_scanner/analysis/training.py')},
             'llm_mito_scanner.data.download': { 'llm_mito_scanner.data.download.download_data': ( '00 data.html#download_data',
                                                                                                   'llm_mito_scanner/data/download.py'),
+                                                'llm_mito_scanner.data.download.extract_accession_sequence_records': ( '00 '
+                                                                                                                       'data.html#extract_accession_sequence_records',
+                                                                                                                       'llm_mito_scanner/data/download.py'),
+                                                'llm_mito_scanner.data.download.get_chromosome_sequence_record': ( '00 '
+                                                                                                                   'data.html#get_chromosome_sequence_record',
+                                                                                                                   'llm_mito_scanner/data/download.py'),
+                                                'llm_mito_scanner.data.download.get_genomic_genbank_path': ( '00 '
+                                                                                                             'data.html#get_genomic_genbank_path',
+                                                                                                             'llm_mito_scanner/data/download.py'),
+                                                'llm_mito_scanner.data.download.get_latest_assembly_path': ( '00 '
+                                                                                                             'data.html#get_latest_assembly_path',
+                                                                                                             'llm_mito_scanner/data/download.py'),
                                                 'llm_mito_scanner.data.download.load_config': ( '00 data.html#load_config',
                                                                                                 'llm_mito_scanner/data/download.py')},
             'llm_mito_scanner.data.pre_training.dna': { 'llm_mito_scanner.data.pre_training.dna.break_genome_into_fasta_files': ( '01 '
@@ -34,6 +46,33 @@ d = { 'settings': { 'branch': 'main',
                                                         'llm_mito_scanner.data.pre_training.dna.validate_written_genome_fasta_files': ( '01 '
                                                                                                                                         'data.pre_training.dna.html#validate_written_genome_fasta_files',
                                                                                                                                         'llm_mito_scanner/data/pre_training/dna.py')},
+            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.get_feature_dbxref_xref': ( '01 '
+                                                                                                                      'data.transcription.html#get_feature_dbxref_xref',
+                                                                                                                      'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_feature_dbxrefs': ( '01 '
+                                                                                                                  'data.transcription.html#get_feature_dbxrefs',
+                                                                                                                  'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_feature_geneid': ( '01 '
+                                                                                                                 'data.transcription.html#get_feature_geneid',
+                                                                                                                 'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_feature_qualifiers': ( '01 '
+                                                                                                                     'data.transcription.html#get_feature_qualifiers',
+                                                                                                                     'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_feature_transcript_id': ( '01 '
+                                                                                                                        'data.transcription.html#get_feature_transcript_id',
+                                                                                                                        'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_gene_and_mrna_features': ( '01 '
+                                                                                                                         'data.transcription.html#get_gene_and_mrna_features',
+                                                                                                                         'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_gene_and_mrna_relationships': ( '01 '
+                                                                                                                              'data.transcription.html#get_gene_and_mrna_relationships',
+                                                                                                                              'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.process_gene_mrna_pair': ( '01 '
+                                                                                                                     'data.transcription.html#process_gene_mrna_pair',
+                                                                                                                     'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.shard_features': ( '01 '
+                                                                                                             'data.transcription.html#shard_features',
+                                                                                                             'llm_mito_scanner/data/transcription.py')},
             'llm_mito_scanner.features.annotations': { 'llm_mito_scanner.features.annotations.annotate_sequence': ( 'build-translation-training-data.html#annotate_sequence',
                                                                                                                     'llm_mito_scanner/features/annotations.py'),
                                                        'llm_mito_scanner.features.annotations.annotate_token': ( 'build-translation-training-data.html#annotate_token',
