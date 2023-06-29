@@ -46,12 +46,12 @@ d = { 'settings': { 'branch': 'main',
                                                         'llm_mito_scanner.data.pre_training.dna.validate_written_genome_fasta_files': ( '01 '
                                                                                                                                         'data.pre_training.dna.html#validate_written_genome_fasta_files',
                                                                                                                                         'llm_mito_scanner/data/pre_training/dna.py')},
-            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.extract_all_relationships': ( '01 '
-                                                                                                                        'data.transcription.html#extract_all_relationships',
-                                                                                                                        'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_all_relationships': ( '01 '
-                                                                                                                    'data.transcription.html#get_all_relationships',
-                                                                                                                    'llm_mito_scanner/data/transcription.py'),
+            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.filter_chromosome_features_by_type': ( '01 '
+                                                                                                                                 'data.transcription.html#filter_chromosome_features_by_type',
+                                                                                                                                 'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_all_input_and_target_sequences': ( '01 '
+                                                                                                                                 'data.transcription.html#get_all_input_and_target_sequences',
+                                                                                                                                 'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_feature_dbxref_xref': ( '01 '
                                                                                                                       'data.transcription.html#get_feature_dbxref_xref',
                                                                                                                       'llm_mito_scanner/data/transcription.py'),
@@ -67,18 +67,33 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.get_feature_transcript_id': ( '01 '
                                                                                                                         'data.transcription.html#get_feature_transcript_id',
                                                                                                                         'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_gene_and_mrna_features': ( '01 '
-                                                                                                                         'data.transcription.html#get_gene_and_mrna_features',
-                                                                                                                         'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_gene_and_mrna_relationships': ( '01 '
                                                                                                                               'data.transcription.html#get_gene_and_mrna_relationships',
                                                                                                                               'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.process_gene_mrna_pair': ( '01 '
-                                                                                                                     'data.transcription.html#process_gene_mrna_pair',
+                                                     'llm_mito_scanner.data.transcription.get_input_and_target_sequence': ( '01 '
+                                                                                                                            'data.transcription.html#get_input_and_target_sequence',
+                                                                                                                            'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_mrna_details': ( '01 '
+                                                                                                               'data.transcription.html#get_mrna_details',
+                                                                                                               'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_mrna_gene_sequence': ( '01 '
+                                                                                                                     'data.transcription.html#get_mrna_gene_sequence',
                                                                                                                      'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.shard_relationships': ( '01 '
-                                                                                                                  'data.transcription.html#shard_relationships',
-                                                                                                                  'llm_mito_scanner/data/transcription.py')},
+                                                     'llm_mito_scanner.data.transcription.get_mrna_locations': ( '01 '
+                                                                                                                 'data.transcription.html#get_mrna_locations',
+                                                                                                                 'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_mrna_sequence_with_introns': ( '01 '
+                                                                                                                             'data.transcription.html#get_mrna_sequence_with_introns',
+                                                                                                                             'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_mrna_splice_locations': ( '01 '
+                                                                                                                        'data.transcription.html#get_mrna_splice_locations',
+                                                                                                                        'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.write_input_and_output_sequences': ( '01 '
+                                                                                                                               'data.transcription.html#write_input_and_output_sequences',
+                                                                                                                               'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.write_mrna_gene_relationships': ( '01 '
+                                                                                                                            'data.transcription.html#write_mrna_gene_relationships',
+                                                                                                                            'llm_mito_scanner/data/transcription.py')},
             'llm_mito_scanner.features.annotations': { 'llm_mito_scanner.features.annotations.annotate_sequence': ( 'build-translation-training-data.html#annotate_sequence',
                                                                                                                     'llm_mito_scanner/features/annotations.py'),
                                                        'llm_mito_scanner.features.annotations.annotate_token': ( 'build-translation-training-data.html#annotate_token',
