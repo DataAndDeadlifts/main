@@ -57,7 +57,8 @@ def make_chromosome_transcription_training_data(args: dict[str, typing.Any]):
     ))
     training_data = []
     chromosome_sequence_path = sequence_path / f"{chromosome_path.stem}.csv"
-    for gene_id, mrna_tup in tqdm(zip(mrna_geneids, chromosome_mrna), total=len(mrna_geneids), desc=tqdm_desc_base+"transforming", **tqdm_args):
+    training_data_pbar = tqdm(total=len(mrna_geneids), desc=tqdm_desc_base+"transforming", **tqdm_args)
+    for gene_id, mrna_tup in zip(mrna_geneids, chromosome_mrna):
         # Make the gene sequence record
         gene_record_tup = get_gene_seq_record(gene_id, chromosome_genes)
         input_sequence = get_input_sequence(mrna_tup, gene_record_tup)
@@ -66,11 +67,13 @@ def make_chromosome_transcription_training_data(args: dict[str, typing.Any]):
         input_sequence_str = ",".join(input_sequence)
         target_sequence_str = ",".join(target_sequence)
         training_data.append((gene_id, input_sequence_str, target_sequence_str))
+        training_data_pbar.update(1)
         if len(training_data) > 1000:
             write_training_data(chromosome_sequence_path, training_data)
             training_data = []
     if len(training_data) > 0:
         write_training_data(chromosome_sequence_path, training_data)
+    training_data_pbar.close()
 
 
 @click.command()
@@ -78,14 +81,24 @@ def make_chromosome_transcription_training_data(args: dict[str, typing.Any]):
 def make_transcription_training_data(assembly_path):
     # Collect available chromosomes to extract data from
     chromosomes_path = assembly_path / "chromosomes"
+    training_data_path = assembly_path / "training"
+    transcription_data_path = training_data_path / "transcription"
+    sequence_path = transcription_data_path / "sequences"
+    sequence_path_list = list(sequence_path.glob("*.csv"))
+    sequence_path_stems = [p.stem for p in sequence_path_list]
+    print(sequence_path_stems)
     # Make args for multiprocessing pool
     tasks = [
         {
             "assembly": assembly_path,
             "chromosome": p,
             "genes": assembly_path / "genes" / f"{p.stem}.csv"
-        } for p in chromosomes_path.glob("*.gb")
+        } for p in chromosomes_path.glob("*.gb") if p.stem not in sequence_path_stems
     ]
+    print(tasks)
+    if len(tasks) == 0:
+        print("All chromosomes processed")
+        return
     pbar = tqdm(total=len(tasks), desc="Overall", ncols=80, leave=True, position=0)
     pool = Pool(4)
     try:
