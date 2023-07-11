@@ -84,12 +84,21 @@ d = { 'settings': { 'branch': 'main',
                                                                'llm_mito_scanner.training.transcription.index.TranscriptionDataset.__len__': ( '02 '
                                                                                                                                                'training.transcription.index.html#transcriptiondataset.__len__',
                                                                                                                                                'llm_mito_scanner/training/transcription/index.py'),
+                                                               'llm_mito_scanner.training.transcription.index.batchify': ( '02 '
+                                                                                                                           'training.transcription.index.html#batchify',
+                                                                                                                           'llm_mito_scanner/training/transcription/index.py'),
+                                                               'llm_mito_scanner.training.transcription.index.batchify_sequence': ( '02 '
+                                                                                                                                    'training.transcription.index.html#batchify_sequence',
+                                                                                                                                    'llm_mito_scanner/training/transcription/index.py'),
                                                                'llm_mito_scanner.training.transcription.index.build_vocab': ( '02 '
                                                                                                                               'training.transcription.index.html#build_vocab',
                                                                                                                               'llm_mito_scanner/training/transcription/index.py'),
                                                                'llm_mito_scanner.training.transcription.index.count_transcription_tokens': ( '02 '
                                                                                                                                              'training.transcription.index.html#count_transcription_tokens',
                                                                                                                                              'llm_mito_scanner/training/transcription/index.py'),
+                                                               'llm_mito_scanner.training.transcription.index.get_batch': ( '02 '
+                                                                                                                            'training.transcription.index.html#get_batch',
+                                                                                                                            'llm_mito_scanner/training/transcription/index.py'),
                                                                'llm_mito_scanner.training.transcription.index.get_sequence': ( '02 '
                                                                                                                                'training.transcription.index.html#get_sequence',
                                                                                                                                'llm_mito_scanner/training/transcription/index.py'),

@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['random_state', 'make_training_index', 'get_training_index', 'make_train_test_split', 'get_sequence',
            'TranscriptionDataset', 'tokenize', 'count_transcription_tokens', 'build_vocab', 'get_vocab',
-           'process_training_sequence']
+           'process_training_sequence', 'batchify_sequence', 'batchify', 'get_batch']
 
 # %% ../../../nbs/02 training.transcription.index.ipynb 1
 from pathlib import Path
@@ -135,8 +135,38 @@ def get_vocab(
 # %% ../../../nbs/02 training.transcription.index.ipynb 25
 def process_training_sequence(sequence: tuple[str, str], data_vocab: Vocab) -> tuple[Tensor, Tensor]:
     """Converts raw text into a flat Tensor."""
-    data = (
-        torch.tensor(data_vocab(tokenize(sequence[0])), dtype=torch.long),
-        torch.tensor(data_vocab(tokenize(sequence[1])), dtype=torch.long),
-    )
-    return data
+    input_tensor = torch.tensor(data_vocab(tokenize(sequence[0])), dtype=torch.long)
+    target_tensor = torch.tensor(data_vocab(tokenize(sequence[1])), dtype=torch.long)
+    return input_tensor, target_tensor
+
+# %% ../../../nbs/02 training.transcription.index.ipynb 29
+def batchify_sequence(sequence: Tensor, bsz: int) -> Tensor:
+    global device
+    seq_len = sequence.size(0) // bsz
+    data = sequence[:seq_len * bsz]
+    data = data.view(bsz, seq_len).t().contiguous()
+    return data.to(device)
+
+
+def batchify(sequence_tensors: tuple[Tensor, Tensor], bsz: int) -> tuple[Tensor, Tensor]:
+    """Divides the data into ``bsz`` separate sequences, removing extra elements
+    that wouldn't cleanly fit.
+
+    Arguments:
+        data: Tensor, shape ``[N]``
+        bsz: int, batch size
+
+    Returns:
+        Tensor of shape ``[N // bsz, bsz]``
+    """
+    input_batches = batchify_sequence(sequence_tensors[0], bsz)
+    target_batches = batchify_sequence(sequence_tensors[1], bsz)
+    return input_batches, target_batches
+
+# %% ../../../nbs/02 training.transcription.index.ipynb 33
+def get_batch(input: Tensor, target: Tensor, i: int, bptt: int = 35) -> tuple[Tensor, Tensor]:
+    global device
+    seq_len = min(bptt, len(input) - 1 - i)
+    data = input[i:i+seq_len].to(device)
+    target = target[i:i+seq_len].to(device)
+    return data, target
