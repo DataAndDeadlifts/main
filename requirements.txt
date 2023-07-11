@@ -7,5 +7,6 @@ jupyterlab-quarto
 lxml
 nbdev
 requests
+seaborn
 torchtext
 tqdm
