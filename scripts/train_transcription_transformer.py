@@ -16,19 +16,21 @@ warnings.simplefilter("ignore")
 
 @click.command()
 @click.argument("assembly_path", type=Path)
-@click.option("--epochs", type=int, default=10)
-@click.option("--embedding_size", type=int, default=32)
+@click.option("--epochs", type=int, default=1)
+@click.option("--embedding_size", type=int, default=16)
 @click.option("--nheads", type=int, default=4)
-@click.option("--feed-forward-dim", type=int, default=32)
+@click.option("--feed-forward-dim", type=int, default=16)
 @click.option("--encoder-layers", type=int, default=1)
 @click.option("--decoder-layers", type=int, default=1)
 @click.option("--batch-size", type=int, default=32)
 @click.option("--collate-size", type=int, default=1500)
+@click.option("--chromosome", type=str, default=None)
 def train(assembly_path: Path, 
           epochs: int, 
           embedding_size: int, nheads: int, feed_forward_dim: int,
           encoder_layers: int, decoder_layers: int,
-          batch_size: int, collate_size: int):
+          batch_size: int, collate_size: int,
+          chromosome: str | None):
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
     sequences_data_path = transcription_data_path / "sequences"
@@ -64,7 +66,8 @@ def train(assembly_path: Path,
                 transformer, optimizer, loss_fn, 
                 transcription_data_path, sequences_data_path,
                 batch_size=batch_size,
-                collate_size=collate_size)
+                collate_size=collate_size,
+                chromosome=chromosome)
         except KeyboardInterrupt:
             pass
         try:
@@ -73,8 +76,8 @@ def train(assembly_path: Path,
                 transformer, loss_fn,
                 transcription_data_path, sequences_data_path,
                 batch_size=batch_size,
-                collate_size=collate_size
-                )
+                collate_size=collate_size,
+                chromosome=chromosome)
         except KeyboardInterrupt:
             pass
         if train_loss is not None:

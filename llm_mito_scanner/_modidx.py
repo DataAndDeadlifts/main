@@ -92,6 +92,9 @@ d = { 'settings': { 'branch': 'main',
                                                                'llm_mito_scanner.training.transcription.index.TranscriptionDataset.__len__': ( '02 '
                                                                                                                                                'training.transcription.index.html#transcriptiondataset.__len__',
                                                                                                                                                'llm_mito_scanner/training/transcription/index.py'),
+                                                               'llm_mito_scanner.training.transcription.index.TranscriptionDataset.filter_chromosome': ( '02 '
+                                                                                                                                                         'training.transcription.index.html#transcriptiondataset.filter_chromosome',
+                                                                                                                                                         'llm_mito_scanner/training/transcription/index.py'),
                                                                'llm_mito_scanner.training.transcription.index.batchify': ( '02 '
                                                                                                                            'training.transcription.index.html#batchify',
                                                                                                                            'llm_mito_scanner/training/transcription/index.py'),

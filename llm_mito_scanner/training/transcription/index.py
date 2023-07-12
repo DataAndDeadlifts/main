@@ -36,7 +36,7 @@ def index_training_sequence_files(sequences_path: Path) -> pd.DataFrame:
     parquet_file_df.loc[:, 'chromosome'] = parquet_file_df_path_split.apply(lambda split_path: split_path[-3].split("=")[-1])
     parquet_file_df.loc[:, 'partition'] = parquet_file_df_path_split.apply(lambda split_path: int(split_path[-2].split("=")[-1]))
     # Sort
-    parquet_file_df.sort_values(['chromosome', 'partition'], inplace=True)
+    parquet_file_df.sort_values(['chromosome', 'partition'], ascending=True, inplace=True)
     parquet_file_df.reset_index(drop=True, inplace=True)
     return parquet_file_df
 
@@ -45,24 +45,27 @@ def make_training_index(index_dir: Path, sequences_path: Path, sample: bool = Fa
     sequence_files = index_training_sequence_files(sequences_path)
     if sample:
         sequence_files = sequence_files.tail(2)
-    sequences = sequence_files.path.tolist()
     frames = []
-    for f in tqdm(sequences):
-        f_frame = pd.read_parquet(f, columns=["geneid", 'transcriptid']).reset_index(drop=False).rename({"index": "file_index"}, axis=1)
-        f_frame.loc[:, 'file'] = f
+    for _, row in sequence_files.iterrows():
+        f_frame = pd.read_parquet(row.path, columns=["geneid", 'transcriptid']).reset_index(drop=False).rename({"index": "file_index"}, axis=1)
+        f_frame.loc[:, 'file'] = row.path
+        f_frame.loc[:, 'chromosome'] = row.chromosome
+        f_frame.loc[:, 'partition'] = row.partition
         frames.append(f_frame)
     training_data_index = pd.concat(
         frames, 
         axis=0, ignore_index=True
-    ).reset_index(drop=True)
+    )
+    training_data_index.sort_values(['chromosome', 'partition'], ascending=True, inplace=True)
+    training_data_index.reset_index(drop=True, inplace=True)
     if save:
         training_data_index.to_csv(index_dir / "index.csv", index=False)
     return training_data_index
 
 
-def get_training_index(index_dir: Path, sequences_path: Path = None, **make_kwargs):
+def get_training_index(index_dir: Path, sequences_path: Path = None, force: bool = False, **make_kwargs):
     index_path = index_dir / "index.csv"
-    if not index_path.exists():
+    if not index_path.exists() or force:
         return make_training_index(index_dir, sequences_path, **make_kwargs)
     else:
         return pd.read_csv(index_path)
@@ -85,6 +88,14 @@ class TranscriptionDataset(Dataset):
         self.training_index = get_training_index(self.training_path, self.sequences_path, sample=False, save=True)
         self.train_idx, self.test_idx = make_train_test_split(self.training_index)
 
+    def filter_chromosome(self, chromosome: str):
+        index_chromosomes = self.training_index.chromosome.unique()
+        if not chromosome in index_chromosomes:
+            raise ValueError(f"Chromosome {chromosome} not found in training data.")
+        filtered_training_index = self.training_index[self.training_index.chromosome == chromosome]
+        self.training_index = filtered_training_index
+        self.train_idx, self.test_idx = make_train_test_split(self.training_index)
+
     def __len__(self) -> int:
         if self.train:
             return self.train_idx.shape[0]
@@ -99,11 +110,11 @@ class TranscriptionDataset(Dataset):
         sequence = get_sequence(sequence_row.file, sequence_row.file_index)
         return sequence.input, sequence.target
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 22
+# %% ../../../nbs/02 training.transcription.index.ipynb 23
 def tokenize(seq: str) -> list[str]:
     return seq.split(",")
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 27
+# %% ../../../nbs/02 training.transcription.index.ipynb 28
 def count_transcription_tokens(parquet_path: Path) -> Counter:
     token_counter = Counter()
     sequences = pd.read_parquet(parquet_path, columns=['input', 'target'])
@@ -165,14 +176,14 @@ def get_vocab(
         transcription_vocab = torch.load(vocab_path)
     return transcription_vocab
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 31
+# %% ../../../nbs/02 training.transcription.index.ipynb 32
 def process_training_sequence(sequence: tuple[str, str], data_vocab: Vocab) -> tuple[Tensor, Tensor]:
     """Converts raw text into a flat Tensor."""
     input_tensor = torch.tensor(data_vocab(tokenize(sequence[0])), dtype=torch.long)
     target_tensor = torch.tensor(data_vocab(tokenize(sequence[1])), dtype=torch.long)
     return input_tensor, target_tensor
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 35
+# %% ../../../nbs/02 training.transcription.index.ipynb 36
 def batchify_sequence(sequence: Tensor, bsz: int) -> Tensor:
     global device
     seq_len = sequence.size(0) // bsz
@@ -196,7 +207,7 @@ def batchify(sequence_tensors: tuple[Tensor, Tensor], bsz: int) -> tuple[Tensor,
     target_batches = batchify_sequence(sequence_tensors[1], bsz)
     return input_batches, target_batches
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 37
+# %% ../../../nbs/02 training.transcription.index.ipynb 38
 def get_batch(input: Tensor, target: Tensor, i: int, bptt: int = 35) -> tuple[Tensor, Tensor]:
     global device
     seq_len = min(bptt, len(input) - 1 - i)

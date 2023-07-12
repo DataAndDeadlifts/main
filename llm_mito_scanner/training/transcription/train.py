@@ -185,11 +185,14 @@ def train_epoch(
         sequences_data_path: Path,
         batch_size: int = 128,
         collate_size: int = 500,
-        pbar_position: int = 1):
+        pbar_position: int = 1,
+        chromosome: str | None = None):
     model.train()
     losses = 0
     counter = 0
     train_iter = TranscriptionDataset(training_data_path, sequences_data_path, train=True)
+    if chromosome is not None:
+        train_iter.filter_chromosome(chromosome)
     train_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=collate_fn)
     
     epoch_pbar = tqdm(total=len(train_iter), position=pbar_position, leave=False, ncols=80, desc="Transcripts")
@@ -229,11 +232,14 @@ def evaluate(
         sequences_data_path: Path,
         batch_size: int = 128,
         collate_size: int = 500,
-        pbar_position: int = 1):
+        pbar_position: int = 1,
+        chromosome: str | None = None):
     model.eval()
     losses = 0
     counter = 0
     val_iter = TranscriptionDataset(training_data_path, sequences_data_path, train=False)
+    if chromosome is not None:
+        val_iter.filter_chromosome(chromosome)
     val_dataloader = DataLoader(val_iter, batch_size=batch_size, collate_fn=collate_fn)
 
     transcript_pbar = tqdm(total=len(val_iter), position=pbar_position, leave=False, ncols=80, desc="Transcripts")
