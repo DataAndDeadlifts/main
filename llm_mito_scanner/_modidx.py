@@ -57,12 +57,20 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.get_mrna_intron_positions': ( '01 '
                                                                                                                         'data.transcription.html#get_mrna_intron_positions',
                                                                                                                         'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_sequence_bytes': ( '01 '
+                                                                                                                 'data.transcription.html#get_sequence_bytes',
+                                                                                                                 'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_sequence_partitions': ( '01 '
+                                                                                                                      'data.transcription.html#get_sequence_partitions',
+                                                                                                                      'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_target_sequence': ( '01 '
                                                                                                                   'data.transcription.html#get_target_sequence',
                                                                                                                   'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.normalize_mrna_positions': ( '01 '
                                                                                                                        'data.transcription.html#normalize_mrna_positions',
                                                                                                                        'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.utf8len': ( '01 data.transcription.html#utf8len',
+                                                                                                      'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.write_chromosome_gene_info': ( '01 '
                                                                                                                          'data.transcription.html#write_chromosome_gene_info',
                                                                                                                          'llm_mito_scanner/data/transcription.py'),
