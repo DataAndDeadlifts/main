@@ -21,7 +21,10 @@ d = { 'settings': { 'branch': 'main',
                                                                                                              'llm_mito_scanner/data/download.py'),
                                                 'llm_mito_scanner.data.download.load_config': ( '00 data.download.html#load_config',
                                                                                                 'llm_mito_scanner/data/download.py')},
-            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.filter_chromosome_features_by_type': ( '01 '
+            'llm_mito_scanner.data.transcription': { 'llm_mito_scanner.data.transcription.extract_sequence_with_positions': ( '01 '
+                                                                                                                              'data.transcription.html#extract_sequence_with_positions',
+                                                                                                                              'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.filter_chromosome_features_by_type': ( '01 '
                                                                                                                                  'data.transcription.html#filter_chromosome_features_by_type',
                                                                                                                                  'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_chromosome_gene_info': ( '01 '
@@ -48,92 +51,31 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.get_gene_seq_record': ( '01 '
                                                                                                                   'data.transcription.html#get_gene_seq_record',
                                                                                                                   'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_input_sequence': ( '01 '
-                                                                                                                 'data.transcription.html#get_input_sequence',
-                                                                                                                 'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_mrna_bookends': ( '01 '
+                                                                                                                'data.transcription.html#get_mrna_bookends',
+                                                                                                                'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_mrna_gene_id': ( '01 '
                                                                                                                'data.transcription.html#get_mrna_gene_id',
                                                                                                                'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_mrna_intron_positions': ( '01 '
                                                                                                                         'data.transcription.html#get_mrna_intron_positions',
                                                                                                                         'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_sequence_bytes': ( '01 '
-                                                                                                                 'data.transcription.html#get_sequence_bytes',
-                                                                                                                 'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_sequence_partitions': ( '01 '
-                                                                                                                      'data.transcription.html#get_sequence_partitions',
-                                                                                                                      'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_target_sequence': ( '01 '
-                                                                                                                  'data.transcription.html#get_target_sequence',
-                                                                                                                  'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.make_intron_position_dataframe': ( '01 '
+                                                                                                                             'data.transcription.html#make_intron_position_dataframe',
+                                                                                                                             'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.normalize_mrna_positions': ( '01 '
                                                                                                                        'data.transcription.html#normalize_mrna_positions',
                                                                                                                        'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.utf8len': ( '01 data.transcription.html#utf8len',
-                                                                                                      'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.write_chromosome_gene_info': ( '01 '
                                                                                                                          'data.transcription.html#write_chromosome_gene_info',
                                                                                                                          'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.write_input_and_target_sequences': ( '01 '
-                                                                                                                               'data.transcription.html#write_input_and_target_sequences',
-                                                                                                                               'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.write_mrna_gene_relationships': ( '01 '
                                                                                                                             'data.transcription.html#write_mrna_gene_relationships',
                                                                                                                             'llm_mito_scanner/data/transcription.py')},
-            'llm_mito_scanner.training.transcription.index': { 'llm_mito_scanner.training.transcription.index.TranscriptionDataset': ( '02 '
-                                                                                                                                       'training.transcription.index.html#transcriptiondataset',
-                                                                                                                                       'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.TranscriptionDataset.__getitem__': ( '02 '
-                                                                                                                                                   'training.transcription.index.html#transcriptiondataset.__getitem__',
-                                                                                                                                                   'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.TranscriptionDataset.__init__': ( '02 '
-                                                                                                                                                'training.transcription.index.html#transcriptiondataset.__init__',
-                                                                                                                                                'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.TranscriptionDataset.__len__': ( '02 '
-                                                                                                                                               'training.transcription.index.html#transcriptiondataset.__len__',
-                                                                                                                                               'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.TranscriptionDataset.filter_chromosome': ( '02 '
-                                                                                                                                                         'training.transcription.index.html#transcriptiondataset.filter_chromosome',
-                                                                                                                                                         'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.batchify': ( '02 '
-                                                                                                                           'training.transcription.index.html#batchify',
-                                                                                                                           'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.batchify_sequence': ( '02 '
-                                                                                                                                    'training.transcription.index.html#batchify_sequence',
-                                                                                                                                    'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.build_vocab': ( '02 '
-                                                                                                                              'training.transcription.index.html#build_vocab',
-                                                                                                                              'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.count_transcription_tokens': ( '02 '
-                                                                                                                                             'training.transcription.index.html#count_transcription_tokens',
-                                                                                                                                             'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.get_batch': ( '02 '
-                                                                                                                            'training.transcription.index.html#get_batch',
-                                                                                                                            'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.get_sequence': ( '02 '
-                                                                                                                               'training.transcription.index.html#get_sequence',
-                                                                                                                               'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.get_training_index': ( '02 '
-                                                                                                                                     'training.transcription.index.html#get_training_index',
-                                                                                                                                     'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.get_vocab': ( '02 '
-                                                                                                                            'training.transcription.index.html#get_vocab',
-                                                                                                                            'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.index_training_sequence_files': ( '02 '
-                                                                                                                                                'training.transcription.index.html#index_training_sequence_files',
-                                                                                                                                                'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.make_train_test_split': ( '02 '
-                                                                                                                                        'training.transcription.index.html#make_train_test_split',
-                                                                                                                                        'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.make_training_index': ( '02 '
-                                                                                                                                      'training.transcription.index.html#make_training_index',
-                                                                                                                                      'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.process_training_sequence': ( '02 '
-                                                                                                                                            'training.transcription.index.html#process_training_sequence',
-                                                                                                                                            'llm_mito_scanner/training/transcription/index.py'),
-                                                               'llm_mito_scanner.training.transcription.index.tokenize': ( '02 '
-                                                                                                                           'training.transcription.index.html#tokenize',
-                                                                                                                           'llm_mito_scanner/training/transcription/index.py')},
+            'llm_mito_scanner.training.transcription.generation': {},
+            'llm_mito_scanner.training.transcription.index': { 'llm_mito_scanner.training.transcription.index.get_intron_locations': ( '02 '
+                                                                                                                                       'training.transcription.index.html#get_intron_locations',
+                                                                                                                                       'llm_mito_scanner/training/transcription/index.py')},
             'llm_mito_scanner.training.transcription.train': { 'llm_mito_scanner.training.transcription.train.PositionalEncoding': ( '03 '
                                                                                                                                      'training.transcription.train.html#positionalencoding',
                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),
