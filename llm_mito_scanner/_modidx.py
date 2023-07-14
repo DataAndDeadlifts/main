@@ -72,73 +72,81 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.write_mrna_gene_relationships': ( '01 '
                                                                                                                             'data.transcription.html#write_mrna_gene_relationships',
                                                                                                                             'llm_mito_scanner/data/transcription.py')},
-            'llm_mito_scanner.training.transcription.generation': {},
+            'llm_mito_scanner.training.transcription.generation': { 'llm_mito_scanner.training.transcription.generation.get_gene_from_csv': ( '03 '
+                                                                                                                                              'training.transcription.generation.html#get_gene_from_csv',
+                                                                                                                                              'llm_mito_scanner/training/transcription/generation.py'),
+                                                                    'llm_mito_scanner.training.transcription.generation.get_mrna_from_gene': ( '03 '
+                                                                                                                                               'training.transcription.generation.html#get_mrna_from_gene',
+                                                                                                                                               'llm_mito_scanner/training/transcription/generation.py'),
+                                                                    'llm_mito_scanner.training.transcription.generation.get_mrna_intron_locations': ( '03 '
+                                                                                                                                                      'training.transcription.generation.html#get_mrna_intron_locations',
+                                                                                                                                                      'llm_mito_scanner/training/transcription/generation.py')},
             'llm_mito_scanner.training.transcription.index': { 'llm_mito_scanner.training.transcription.index.get_intron_locations': ( '02 '
                                                                                                                                        'training.transcription.index.html#get_intron_locations',
                                                                                                                                        'llm_mito_scanner/training/transcription/index.py')},
-            'llm_mito_scanner.training.transcription.train': { 'llm_mito_scanner.training.transcription.train.PositionalEncoding': ( '03 '
+            'llm_mito_scanner.training.transcription.train': { 'llm_mito_scanner.training.transcription.train.PositionalEncoding': ( '04 '
                                                                                                                                      'training.transcription.train.html#positionalencoding',
                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.PositionalEncoding.__init__': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.PositionalEncoding.__init__': ( '04 '
                                                                                                                                               'training.transcription.train.html#positionalencoding.__init__',
                                                                                                                                               'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.PositionalEncoding.forward': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.PositionalEncoding.forward': ( '04 '
                                                                                                                                              'training.transcription.train.html#positionalencoding.forward',
                                                                                                                                              'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer': ( '04 '
                                                                                                                                      'training.transcription.train.html#seq2seqtransformer',
                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.__init__': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.__init__': ( '04 '
                                                                                                                                               'training.transcription.train.html#seq2seqtransformer.__init__',
                                                                                                                                               'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.decode': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.decode': ( '04 '
                                                                                                                                             'training.transcription.train.html#seq2seqtransformer.decode',
                                                                                                                                             'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.encode': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.encode': ( '04 '
                                                                                                                                             'training.transcription.train.html#seq2seqtransformer.encode',
                                                                                                                                             'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.forward': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.Seq2SeqTransformer.forward': ( '04 '
                                                                                                                                              'training.transcription.train.html#seq2seqtransformer.forward',
                                                                                                                                              'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding': ( '04 '
                                                                                                                                  'training.transcription.train.html#tokenembedding',
                                                                                                                                  'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding.__init__': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding.__init__': ( '04 '
                                                                                                                                           'training.transcription.train.html#tokenembedding.__init__',
                                                                                                                                           'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding.forward': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.TokenEmbedding.forward': ( '04 '
                                                                                                                                          'training.transcription.train.html#tokenembedding.forward',
                                                                                                                                          'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.collate_fn': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.collate_fn': ( '04 '
                                                                                                                              'training.transcription.train.html#collate_fn',
                                                                                                                              'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.create_mask': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.create_mask': ( '04 '
                                                                                                                               'training.transcription.train.html#create_mask',
                                                                                                                               'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.evaluate': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.evaluate': ( '04 '
                                                                                                                            'training.transcription.train.html#evaluate',
                                                                                                                            'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.generate_square_subsequent_mask': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.generate_square_subsequent_mask': ( '04 '
                                                                                                                                                   'training.transcription.train.html#generate_square_subsequent_mask',
                                                                                                                                                   'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.greedy_decode': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.greedy_decode': ( '04 '
                                                                                                                                 'training.transcription.train.html#greedy_decode',
                                                                                                                                 'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.sequential_transforms': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.sequential_transforms': ( '04 '
                                                                                                                                         'training.transcription.train.html#sequential_transforms',
                                                                                                                                         'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.set_text_transform': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.set_text_transform': ( '04 '
                                                                                                                                      'training.transcription.train.html#set_text_transform',
                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.set_vocab_idx': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.set_vocab_idx': ( '04 '
                                                                                                                                 'training.transcription.train.html#set_vocab_idx',
                                                                                                                                 'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.tensor_transform': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.tensor_transform': ( '04 '
                                                                                                                                    'training.transcription.train.html#tensor_transform',
                                                                                                                                    'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.train_epoch': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.train_epoch': ( '04 '
                                                                                                                               'training.transcription.train.html#train_epoch',
                                                                                                                               'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.translate': ( '03 '
+                                                               'llm_mito_scanner.training.transcription.train.translate': ( '04 '
                                                                                                                             'training.transcription.train.html#translate',
                                                                                                                             'llm_mito_scanner/training/transcription/train.py')}}}
