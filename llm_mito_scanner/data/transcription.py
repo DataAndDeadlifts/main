@@ -3,18 +3,17 @@
 # %% auto 0
 __all__ = ['filter_chromosome_features_by_type', 'get_feature_qualifiers', 'get_feature_dbxrefs', 'get_feature_dbxref_xref',
            'get_feature_geneid', 'get_feature_transcript_id', 'get_chromosome_gene_info', 'write_chromosome_gene_info',
-           'get_gene_and_mrna_relationships', 'write_mrna_gene_relationships', 'get_mrna_gene_id',
-           'get_gene_seq_record', 'normalize_mrna_positions', 'get_mrna_bookends', 'extract_sequence_with_positions',
-           'get_mrna_intron_positions', 'make_intron_position_dataframe']
+           'read_all_chromosome_gene_info', 'get_gene_and_mrna_relationships', 'write_mrna_gene_relationships',
+           'get_mrna_gene_id', 'get_gene_seq_record', 'normalize_mrna_positions', 'get_mrna_bookends',
+           'extract_sequence_with_positions', 'get_mrna_intron_positions', 'make_intron_position_dataframe']
 
 # %% ../../nbs/01 data.transcription.ipynb 7
 import warnings
 warnings.simplefilter("ignore")
-import os
 from pathlib import Path
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, SimpleLocation, Seq, CompoundLocation, Location
+from Bio.SeqFeature import SeqFeature, SimpleLocation, Seq
 from tqdm.auto import tqdm
 import pandas as pd
 import typing
@@ -92,7 +91,14 @@ def write_chromosome_gene_info(assembly_path: Path, chromosome_tag: str, frame: 
     gene_info_path = genes_path / f"{chromosome_tag}.csv"
     frame.to_csv(gene_info_path, index=False)
 
-# %% ../../nbs/01 data.transcription.ipynb 30
+# %% ../../nbs/01 data.transcription.ipynb 28
+def read_all_chromosome_gene_info(assembly_path: Path, limit: int = None) -> pd.DataFrame:
+    gene_info_files = list((assembly_path / "genes").glob("*.csv"))
+    if limit is not None:
+        gene_info_files = gene_info_files[:limit]
+    return pd.concat([pd.read_csv(p) for p in gene_info_files], axis=0, ignore_index=True)
+
+# %% ../../nbs/01 data.transcription.ipynb 32
 def get_gene_and_mrna_relationships(
         chromosome: SeqRecord,
         ) -> pd.DataFrame:
@@ -123,7 +129,7 @@ def get_gene_and_mrna_relationships(
         ).sort_values("gene_feature_idx", ascending=True)
     return chromosome_relationships_df
 
-# %% ../../nbs/01 data.transcription.ipynb 34
+# %% ../../nbs/01 data.transcription.ipynb 36
 def write_mrna_gene_relationships(relationships: pd.DataFrame, chromosome: str, assembly_path: Path):
     relationship_path = assembly_path / "relationships"
     mrna_to_gene_path = relationship_path / "mrna_to_gene"
@@ -132,7 +138,7 @@ def write_mrna_gene_relationships(relationships: pd.DataFrame, chromosome: str, 
     chromosome_relationship_path = mrna_to_gene_path / f"{chromosome}.csv"
     relationships.to_csv(chromosome_relationship_path, index=False)
 
-# %% ../../nbs/01 data.transcription.ipynb 41
+# %% ../../nbs/01 data.transcription.ipynb 43
 def get_mrna_gene_id(mrna_tup: tuple[int, SeqFeature], relationships: pd.DataFrame):
     idx, mrna = mrna_tup
     mrna_transcript_id = get_feature_transcript_id(mrna)
@@ -141,7 +147,7 @@ def get_mrna_gene_id(mrna_tup: tuple[int, SeqFeature], relationships: pd.DataFra
         return None
     return mrna_gene_id.iloc[0, :].geneid
 
-# %% ../../nbs/01 data.transcription.ipynb 43
+# %% ../../nbs/01 data.transcription.ipynb 45
 def get_gene_seq_record(gene_id: str, genes: pd.DataFrame) -> tuple[tuple[int, int], SeqRecord]:
     ""
     gene_id_row = genes[genes.geneid == gene_id]
@@ -151,7 +157,7 @@ def get_gene_seq_record(gene_id: str, genes: pd.DataFrame) -> tuple[tuple[int, i
     gene_id_seqrecord = SeqRecord(Seq(gene_id_row.sequence))
     return gene_id_row.pos_strand_position, gene_id_row.neg_strand_position, gene_id_seqrecord
 
-# %% ../../nbs/01 data.transcription.ipynb 49
+# %% ../../nbs/01 data.transcription.ipynb 51
 def normalize_mrna_positions(
         mrna_tup: tuple[int, SeqFeature], 
         gene_record_tup: tuple[tuple[int, int], SeqRecord],
@@ -172,7 +178,7 @@ def normalize_mrna_positions(
     norm_position_ints = [(int(p.start), int(p.end)) for p in norm_positions]
     return norm_position_ints
 
-# %% ../../nbs/01 data.transcription.ipynb 51
+# %% ../../nbs/01 data.transcription.ipynb 53
 def get_mrna_bookends(
         mrna_tup: tuple[int, SeqFeature], 
         gene_record_tup: tuple[tuple[int, int], SeqRecord]) -> tuple[int, int]:
@@ -181,7 +187,7 @@ def get_mrna_bookends(
     end = norm_mrna_positions[-1][-1]
     return start, end
 
-# %% ../../nbs/01 data.transcription.ipynb 55
+# %% ../../nbs/01 data.transcription.ipynb 57
 def extract_sequence_with_positions(positions: list[tuple[int, int]], sequence: str):
     sequence_extracted_list = []
     for start, end in positions:
@@ -189,7 +195,7 @@ def extract_sequence_with_positions(positions: list[tuple[int, int]], sequence: 
         sequence_extracted_list.append(position_sequence)
     return "".join(sequence_extracted_list)
 
-# %% ../../nbs/01 data.transcription.ipynb 64
+# %% ../../nbs/01 data.transcription.ipynb 66
 def get_mrna_intron_positions(
         mrna_tup: tuple[int, SeqFeature],
         gene_record_tup: tuple[tuple[int, int], SeqRecord],
@@ -211,7 +217,7 @@ def get_mrna_intron_positions(
     intron_positions = [(p[0] - mrna_start, p[1] - mrna_start) for p in intron_positions]
     return intron_positions
 
-# %% ../../nbs/01 data.transcription.ipynb 69
+# %% ../../nbs/01 data.transcription.ipynb 71
 def make_intron_position_dataframe(
         gene_ids: list[str], 
         transcript_ids: list[str], 
