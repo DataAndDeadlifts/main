@@ -40,6 +40,8 @@ def get_chromosome_sequences_with_idx(args: dict) -> pd.DataFrame:
         ), axis=1
     ).values.tolist()
     training_sequence_frame = pd.DataFrame(training_sequences, columns=['input', 'target', 'position'])
+    training_sequence_frame.loc[:, 'chromosome'] = chromosome
+    training_sequence_frame.loc[:, 'type'] = index['type']
     pbar.close()
     return training_sequence_frame
 
@@ -64,12 +66,14 @@ def generate_sequences(assembly_path: Path):
     pool = mp.Pool(processes=6)
     pbar = tqdm(total=len(tasks), ncols=80, desc="Generating")
     frame_write_path = transcription_data_path / "training_data.csv"
+    header = True
+    mode = "w+"
     try:
         for frame in pool.imap_unordered(get_chromosome_sequences_with_idx, tasks):
-            header = ~frame_write_path.exists()
-            mode = "w+" if header else "a"
             frame.to_csv(frame_write_path, header=header, mode=mode, index=False)
             pbar.update(1)
+            header = False
+            mode = "a"
     except Exception as e:
         raise e
     finally:
