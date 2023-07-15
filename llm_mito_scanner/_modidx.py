@@ -105,9 +105,6 @@ d = { 'settings': { 'branch': 'main',
                                                                   'llm_mito_scanner.training.transcription.sampling.get_training_sequences_with_idx': ( '04 '
                                                                                                                                                         'training.transcription.sampling.html#get_training_sequences_with_idx',
                                                                                                                                                         'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.get_training_sequences_with_idx_batches': ( '04 '
-                                                                                                                                                                'training.transcription.sampling.html#get_training_sequences_with_idx_batches',
-                                                                                                                                                                'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.make_gene_sequence_lookup': ( '04 '
                                                                                                                                                   'training.transcription.sampling.html#make_gene_sequence_lookup',
                                                                                                                                                   'llm_mito_scanner/training/transcription/sampling.py'),

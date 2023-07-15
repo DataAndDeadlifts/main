@@ -3,8 +3,8 @@
 # %% auto 0
 __all__ = ['sample_intron_edges', 'sample_introns', 'sample_mrna', 'sample_mrna_edges', 'sample_sequences_idx',
            'make_mrna_file_index', 'get_mrna_file_index', 'make_gene_sequence_lookup', 'make_mrna_sequence_lookup',
-           'get_mrna_partitions', 'get_training_sequences_with_idx', 'get_training_sequences_with_idx_batches',
-           'get_index_sequences', 'get_chromosome_idx_sequences']
+           'get_mrna_partitions', 'get_training_sequences_with_idx', 'get_index_sequences',
+           'get_chromosome_idx_sequences']
 
 # %% ../../../nbs/04 training.transcription.sampling.ipynb 5
 from pathlib import Path
@@ -238,6 +238,8 @@ def get_mrna_partitions(paths: list[Path], transcript_ids: list[str] = None) -> 
         p_frame = pd.read_parquet(p)
         if isinstance(transcript_ids, list):
             p_frame = p_frame[p_frame.transcriptid.isin(transcript_ids)]
+            if p_frame.shape[0] == 0:
+                continue
         p_chromosome = p.parent.name
         p_frame.loc[:, 'chromosome'] = p_chromosome
         frames.append(p_frame)
@@ -249,27 +251,9 @@ def get_training_sequences_with_idx(
         start: int, end: int,
         ) -> tuple[str, str]:
     ""
-    return list(gene[start: end]), mrna[start: end]
+    return ",".join(list(gene)[start: end]), ",".join(mrna.split(",")[start: end])
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 53
-def get_training_sequences_with_idx_batches(
-    index: pd.DataFrame,
-    gene_lookup: dict[tuple[str,str], str],
-    mrna_lookup: dict[tuple[str,str,str], str]) -> pd.DataFrame:
-    sequences = index.apply(
-        lambda row: get_training_sequences_with_idx(
-            gene_lookup.get((row.chromosome, row.geneid)),
-            mrna_lookup.get((row.chromosome, row.geneid, row.transcriptid)),
-            row.start, row.end
-        ), axis=1).values.tolist()
-    sequences = pd.DataFrame(sequences, columns=['input', 'target'])
-    return pd.concat(
-        [
-            index,
-            sequences
-        ], axis=1, ignore_index=False)
-
-
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 55
 def get_index_sequences(
         index: pd.DataFrame,
         assembly_path: Path,
@@ -285,23 +269,32 @@ def get_index_sequences(
         index.mrna_partition.unique().tolist(),
         index.transcriptid.unique().tolist())
     mrna_lookup = make_mrna_sequence_lookup(mrna_lookup)
-    return get_training_sequences_with_idx_batches(
-        index,
-        gene_lookup,
-        mrna_lookup)
+    sequences = index.apply(
+        lambda row: get_training_sequences_with_idx(
+            gene_lookup.get((row.chromosome, row.geneid)),
+            mrna_lookup.get((row.chromosome, row.geneid, row.transcriptid)),
+            row.start, row.end
+        ), axis=1).values.tolist()
+    sequences = pd.DataFrame(sequences, columns=['input', 'target'])
+    return pd.concat(
+        [
+            index,
+            sequences
+        ], axis=1, ignore_index=False)
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 57
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 61
 def get_chromosome_idx_sequences(args: dict):
     chromosome = args.get("chromosome")
     index = args.get('index')
     assembly_path = args.get("assembly")
     pbar_position = args.get("position", 1)
-    chunk_size = args.get("chunk_size", 500)
-    write_size = args.get("write_size", 1000)
+    chunk_size = args.get("chunk_size", 50)
+    write_size = args.get("write_size", 10000)
     save = args.get("save", False)
+    index.sort_values(["transcriptid", "mrna_partition"], inplace=True)
     write_path = assembly_path / "training/transcription/sequences" / chromosome
-    if not write_path.exists():
-        write_path.mkdir()
+    if not write_path.exists() and save:
+        write_path.mkdir(parents=True)
     num_chunks = max(1, index.shape[0] / chunk_size)
     index_chunks = []
     curr_chunk = None
@@ -334,9 +327,9 @@ def get_chromosome_idx_sequences(args: dict):
         position=pbar_position, leave=False, ncols=80, desc=f"{chromosome}")
     batch_counter = 1
     sequences = []
-    for index_chunk in index_chunks:
+    for chunk in index_chunks:
         chromosome_index_chunk_sequences = get_index_sequences(
-            index_chunk,
+            chunk,
             assembly_path,
             chromosome=chromosome
         )
@@ -351,7 +344,7 @@ def get_chromosome_idx_sequences(args: dict):
             write_path_chunk = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
             pd.concat(sequences, axis=0, ignore_index=True).to_parquet(write_path_chunk, index=False)
             sequences = []
-        batch_counter += 1
+            batch_counter += 1
         pbar.update(1)
     if save and len(sequences) > 0:
         write_path_chunk = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
