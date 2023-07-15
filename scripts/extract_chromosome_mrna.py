@@ -20,7 +20,7 @@ def extract_chromosome_mrna(args: dict):
     process_idx = next(iter(current_process()._identity), 0)
     chromosome = args.get("chromosome")
     assembly_path = args.get("assembly_path")
-    batch_size = args.get('batch_size', 1000)
+    batch_size = args.get('batch_size', 500)
     gene_path = assembly_path / "genes"
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
@@ -36,7 +36,7 @@ def extract_chromosome_mrna(args: dict):
         write_path.mkdir()
     batch_counter = 1
     row_batch = []
-    for _, row in chromosome_mrna.iterrows():
+    for i, (_, row) in enumerate(chromosome_mrna.iterrows()):
         row_copy = row.copy()
         _, mrna_sequence = get_mrna_from_gene(
             chromosome_genes.get(row.geneid),
@@ -47,14 +47,16 @@ def extract_chromosome_mrna(args: dict):
         row_copy.loc["mrna"] = mrna_sequence
         row_batch.append(row_copy)
         if len(row_batch) >= batch_size:
-            write_path_batch = write_path / f"partition-{str(batch_counter).zfill(2)}.parquet"
+            write_path_batch = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
             pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
             row_batch = []
             batch_counter += 1
-        pbar.update(1)
+        if i % 10 == 0:
+            pbar.update(10)
     if len(row_batch) > 0:
-        write_path_batch = write_path / f"partition-{str(batch_counter).zfill(2)}.parquet"
+        write_path_batch = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
         pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
+    pbar.update(chromosome_mrna.shape[0] - (chromosome_mrna.shape[0] // 10))
     pbar.close()
 
 
