@@ -59,7 +59,7 @@ def get_mrna_from_gene(
         intron_locations: list[tuple[int, int]],
         intron_token: str = INTRON_TOK,
         untranscribed_token: str = NULL_TOK,
-        debug: bool = False) -> tuple[str, str]:
+        debug: bool = False) -> tuple[list[str], list[str]]:
     "Get annotated input and target sequences for a given mRNA."
     gene_sequence_length = len(gene_sequence)
     start_pad_len = mrna_start
@@ -87,7 +87,7 @@ def get_mrna_from_gene(
     mrna = [n if n != "T" else "U" for n in mrna]
     return gene, mrna
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 28
+# %% ../../../nbs/03 training.transcription.generation.ipynb 31
 def sample_intron_edges(
         locations: pd.DataFrame, n: int, 
         random_state: int = 42, offset: int = -32, length: int = 64) -> pd.DataFrame:
@@ -110,7 +110,7 @@ def sample_intron_edges(
     intron_edges.loc[:, 'type'] = 'intron-edge'
     return intron_edges
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 32
+# %% ../../../nbs/03 training.transcription.generation.ipynb 35
 def sample_introns(
         locations: pd.DataFrame, n: int,
         random_state: int = 42, length: int = 64) -> pd.DataFrame:
@@ -149,7 +149,7 @@ def sample_introns(
     introns = pd.concat(sample_frames, axis=0)
     return introns
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 37
+# %% ../../../nbs/03 training.transcription.generation.ipynb 40
 def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
     "Get the mrna sequences between introns"
     # Get locations of transcribed dna
@@ -182,7 +182,7 @@ def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
     ).sort_values(['chromosome', 'geneid', 'transcriptid', 'start']).reset_index(drop=True)
     return all_mrna_sequences
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 41
+# %% ../../../nbs/03 training.transcription.generation.ipynb 44
 def sample_mrna(
         mrna_locations: pd.DataFrame, n: int, 
         random_state: int = 42, length: int = 64) -> pd.DataFrame:
@@ -220,7 +220,7 @@ def sample_mrna(
     # Randomly select a slice point within the identified range
     return pd.concat(sample_frames, axis=0, ignore_index=True)
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 43
+# %% ../../../nbs/03 training.transcription.generation.ipynb 46
 def sample_mrna_edges(locations: pd.DataFrame, n: int, random_state: int = 42, length: int = 64) -> pd.DataFrame:
     "Get the beginning and end of mrna"
     locations = locations.drop_duplicates(
@@ -245,7 +245,7 @@ def sample_mrna_edges(locations: pd.DataFrame, n: int, random_state: int = 42, l
     sample_edges.loc[:, 'type'] = 'mrna-edge'
     return sample_edges
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 45
+# %% ../../../nbs/03 training.transcription.generation.ipynb 48
 def sample_sequences_idx(
         n: int, 
         intron_locations: pd.DataFrame,
@@ -273,7 +273,7 @@ def sample_sequences_idx(
     ], axis=0, ignore_index=True)
     return sample
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 48
+# %% ../../../nbs/03 training.transcription.generation.ipynb 51
 def get_training_sequences_with_idx(
         chromosome: str, geneid: str, transcriptid: str, 
         genes: pd.DataFrame,

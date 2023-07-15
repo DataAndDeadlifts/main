@@ -20,6 +20,7 @@ def extract_chromosome_mrna(args: dict):
     process_idx = next(iter(current_process()._identity), 0)
     chromosome = args.get("chromosome")
     assembly_path = args.get("assembly_path")
+    batch_size = args.get('batch_size', 1000)
     gene_path = assembly_path / "genes"
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
@@ -30,21 +31,30 @@ def extract_chromosome_mrna(args: dict):
     chromosome_mrna = chromosome_intron_locations[['geneid', 'transcriptid', 'mrna_start', 'mrna_end']].drop_duplicates()
     # Get mrna
     pbar = tqdm(total=chromosome_mrna.shape[0], position=process_idx, desc=f"{chromosome}-generating", ncols=80, leave=False)
-    sequence_tuples = chromosome_mrna.apply(
-        lambda row: update_pbar(
-            get_mrna_from_gene(
-                chromosome_genes.get(row.geneid),
-                row.mrna_start, row.mrna_end,
-                get_mrna_intron_locations(chromosome, row.geneid, row.transcriptid, chromosome_intron_locations)),
-            pbar
-    ), axis=1)
-    sequences = pd.concat(
-        [
-            chromosome_mrna,
-            pd.DataFrame(sequence_tuples.values.tolist(), columns=['gene', 'mrna'])
-        ], axis=1)
-    pbar.set_description(f"{chromosome}-writing")
-    sequences.to_parquet(mrna_data_path / f"{chromosome}.parquet")
+    write_path = mrna_data_path / chromosome
+    if not write_path.exists():
+        write_path.mkdir()
+    batch_counter = 1
+    row_batch = []
+    for _, row in chromosome_mrna.iterrows():
+        row_copy = row.copy()
+        _, mrna_sequence = get_mrna_from_gene(
+            chromosome_genes.get(row.geneid),
+            row.mrna_start, row.mrna_end,
+            get_mrna_intron_locations(chromosome, row.geneid, row.transcriptid, chromosome_intron_locations))
+        mrna_sequence = ",".join(mrna_sequence)
+        # row_copy.loc["gene"] = gene_sequence # We can get this elsewhere, lets save some disc space
+        row_copy.loc["mrna"] = mrna_sequence
+        row_batch.append(row_copy)
+        if len(row_batch) >= batch_size:
+            write_path_batch = write_path / f"partition-{str(batch_counter).zfill(2)}.parquet"
+            pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
+            row_batch = []
+            batch_counter += 1
+        pbar.update(1)
+    if len(row_batch) > 0:
+        write_path_batch = write_path / f"partition-{str(batch_counter).zfill(2)}.parquet"
+        pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
     pbar.close()
 
 
@@ -62,7 +72,7 @@ def extract_mrna(assembly_path: Path):
     tasks = [{
         "chromosome": c,
         "assembly_path": assembly_path
-    } for c in chromosomes if not (mrna_data_path / f"{c}.parquet").exists()]
+    } for c in chromosomes]
     task_pbar = tqdm(total=len(tasks), ncols=80, desc="Extracting", leave=False)
     pool = Pool(6)
     try:

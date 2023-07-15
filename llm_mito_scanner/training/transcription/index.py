@@ -4,17 +4,9 @@
 __all__ = ['random_state', 'get_intron_locations']
 
 # %% ../../../nbs/02 training.transcription.index.ipynb 2
-# import os
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
-# from sklearn.model_selection import train_test_split
-# import torch
-# from torch import Tensor
-# from torch.utils.data import Dataset
-# from torchtext.vocab import vocab, Vocab
-# from collections import Counter, OrderedDict
-# from multiprocessing import Pool
 
 tqdm.pandas()
 

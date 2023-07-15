@@ -1,6 +1,0 @@
-[console_scripts]
-
-
-[nbdev]
-llm_mito_scanner = llm_mito_scanner._modidx:d
-

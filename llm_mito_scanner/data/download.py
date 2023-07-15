@@ -11,8 +11,13 @@ import typing
 import subprocess
 from tqdm import tqdm
 import gzip
-from Bio import SeqIO, SeqRecord
 import pandas as pd
+import warnings
+
+warnings.simplefilter("ignore")
+
+from Bio import SeqIO, SeqRecord
+
 
 # %% ../../nbs/00 data.download.ipynb 5
 def load_config(path: Path = Path("../config.yml")) -> dict[typing.Any, typing.Any]:
