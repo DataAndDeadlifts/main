@@ -1,6 +1,8 @@
 import click
 from pathlib import Path
+import warnings
 
+warnings.simplefilter('ignore')
 
 from llm_mito_scanner.training.transcription.index import get_intron_locations
 from llm_mito_scanner.training.transcription.generation import \

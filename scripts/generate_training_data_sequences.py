@@ -3,12 +3,13 @@ from pathlib import Path
 import pandas as pd
 import multiprocessing as mp
 from tqdm import tqdm
+import warnings
+
+warnings.simplefilter("ignore")
 
 tqdm.pandas()
 
 
-from llm_mito_scanner.data.transcription import read_all_chromosome_gene_info
-from llm_mito_scanner.training.transcription.index import get_intron_locations
 from llm_mito_scanner.training.transcription.generation import \
     get_training_sequences_with_idx
 
@@ -18,32 +19,43 @@ def update_pbar(result, pbar):
     return result
 
 
-def get_chromosome_sequences_with_idx(args: dict) -> pd.DataFrame:
-    process_idx = next(iter(mp.current_process()._identity), 0)
+def get_chromosome_sequences_with_idx(args: dict) -> tuple[int, pd.DataFrame]:
+    process_idx = next(iter(mp.current_process()._identity), 1)
     index = args.get('index') # this is the index for a single chromosome
     chromosome = args.get("chromosome")
     genes_path = args.get("genes_path")
-    chromosome_intron_location_path = args.get('intron_locations_path')
-    chromosome_intron_locations = pd.read_parquet(chromosome_intron_location_path)
-    chromosome_intron_locations.loc[:, 'chromosome'] = chromosome_intron_location_path.stem.replace("chromosome-", "")
+    intron_location_path = args.get('intron_locations_path')
+    pbar = tqdm(
+        total=index.shape[0], position=process_idx, ncols=80, 
+        desc=f"{chromosome}", leave=False
+        )
+    index_geneids = index.geneid.unique()
+    index_transcriptids = index.transcriptid.unique()
+    intron_locations = pd.read_parquet(intron_location_path / f"chromosome-{chromosome}.parquet")
+    intron_locations.loc[:, 'chromosome'] = chromosome
+    intron_locations = intron_locations[
+        (intron_locations.geneid.isin(index_geneids)) &
+        (intron_locations.transcriptid.isin(index_transcriptids))
+    ]
     chromosome_genes = pd.read_csv(genes_path / f"{chromosome}.csv")
-    pbar = tqdm(total=index.shape[0], position=process_idx, ncols=80, desc=f"{chromosome}", leave=False)
+    chromosome_genes = chromosome_genes[
+        (chromosome_genes.geneid.isin(index_geneids))
+    ]
     training_sequences = index.apply(
         lambda row: update_pbar(
             get_training_sequences_with_idx(
                 row.chromosome, row.geneid, row.transcriptid, 
                 chromosome_genes,
-                chromosome_intron_locations,
+                intron_locations,
                 row.start, row.end
-            ),
-            pbar
-        ), axis=1
-    ).values.tolist()
+            ), 
+            pbar), 
+        axis=1).values.tolist()
     training_sequence_frame = pd.DataFrame(training_sequences, columns=['input', 'target', 'position'])
     training_sequence_frame.loc[:, 'chromosome'] = chromosome
     training_sequence_frame.loc[:, 'type'] = index['type']
     pbar.close()
-    return training_sequence_frame
+    return chromosome, training_sequence_frame
 
 
 @click.command()
@@ -55,25 +67,22 @@ def generate_sequences(assembly_path: Path):
     intron_locations_path = transcription_data_path / "intron_positions"
     index_path = transcription_data_path / "training_sequence_idx.csv"
     index = pd.read_csv(index_path)
-    # Maybe split by chromosome and partially load intron locations, genes
-    # intron_locations = get_intron_locations(intron_locations_path)
     tasks = [{
-        "index": index[index.chromosome == c],
-        "chromosome": c,
+        "index": index[index.chromosome == chromosome],
+        "chromosome": chromosome,
         "genes_path": genes_path,
-        "intron_locations_path": intron_locations_path / f"chromosome-{c}.parquet"
-    } for c in index.chromosome.unique()]
+        "intron_locations_path": intron_locations_path} for chromosome in index.chromosome.unique()
+    ]
+    partition_path = transcription_data_path / "sequences"
+    if not partition_path.exists():
+        partition_path.mkdir()
     pool = mp.Pool(processes=6)
-    pbar = tqdm(total=len(tasks), ncols=80, desc="Generating")
-    frame_write_path = transcription_data_path / "training_data.csv"
-    header = True
-    mode = "w+"
     try:
-        for frame in pool.imap_unordered(get_chromosome_sequences_with_idx, tasks):
-            frame.to_csv(frame_write_path, header=header, mode=mode, index=False)
+        pbar = tqdm(total=len(tasks), ncols=80, desc="Generating")
+        for chromosome, frame in pool.imap_unordered(get_chromosome_sequences_with_idx, tasks):
+            epoch_path = partition_path / f"{chromosome}.parquet"
+            frame.to_parquet(epoch_path)
             pbar.update(1)
-            header = False
-            mode = "a"
     except Exception as e:
         raise e
     finally:

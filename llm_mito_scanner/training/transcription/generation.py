@@ -94,8 +94,9 @@ def sample_intron_edges(
     "Get training instances where either the start of end of an intron is in the center of the sequence."
     start_n = int(n / 2)
     end_n = n - start_n
-    starts = locations.sample(start_n, random_state=random_state)
-    ends = locations.sample(end_n, random_state=random_state)
+    replace = False if start_n > locations.shape[0] else True
+    starts = locations.sample(start_n, replace=replace, random_state=random_state)
+    ends = locations.sample(end_n, replace=replace, random_state=random_state)
     frames = []
     for f, slice_origin in zip([starts, ends], ['intron_start', 'intron_end']):
         f_slice_start = (f[slice_origin] - f.mrna_start + offset).apply(lambda val: max(0, val))
@@ -115,7 +116,8 @@ def sample_introns(
         random_state: int = 42, length: int = 64) -> pd.DataFrame:
     random.seed(random_state)
     "Get training instances where most of the tokens are <intron>."
-    intron_sample = locations.sample(n, random_state=random_state)
+    replace = False if n < locations.shape[0] else True
+    intron_sample = locations.sample(n, replace=replace, random_state=random_state)
     # Handle sequences of varying sizes
     intron_sample.loc[:, 'intron_length'] = intron_sample.intron_end - intron_sample.intron_start
     intron_len_mask = intron_sample.intron_length <= length
@@ -185,7 +187,8 @@ def sample_mrna(
         mrna_locations: pd.DataFrame, n: int, 
         random_state: int = 42, length: int = 64) -> pd.DataFrame:
     "Get a sample or mrna sequence locations"
-    mrna_locations = mrna_locations.sample(n, random_state=random_state)
+    replace = False if n < mrna_locations.shape[0] else True
+    mrna_locations = mrna_locations.sample(n, replace=replace, random_state=random_state)
     # For small mrna sections, do the same thing we did with the introns
     # Handle sequences of varying sizes
     mrna_locations.loc[:, 'length'] = mrna_locations.end - mrna_locations.start
@@ -225,13 +228,15 @@ def sample_mrna_edges(locations: pd.DataFrame, n: int, random_state: int = 42, l
     ).drop(['intron_start', 'intron_end'], axis=1).reset_index(drop=True)
     n_start = int(n / 2)
     n_end = n - n_start
+    replace = False if (n_start < locations.shape[0]) or (n_end < locations.shape[0]) else True
     mrna_starts = locations.sample(
-        n_start, random_state=random_state).rename({'mrna_start': 'start'}, axis=1)
+        n_start, replace=replace, random_state=random_state
+        ).rename({'mrna_start': 'start'}, axis=1)
     mrna_starts.loc[:, 'end'] = mrna_starts.start + length
     mrna_starts.loc[:, 'end'] = mrna_starts[['mrna_end', 'end']].min(axis=1)
     mrna_starts.drop(['mrna_end'], axis=1, inplace=True)
     mrna_ends = locations.sample(
-        n_end, random_state=random_state).rename({'mrna_end': 'end'}, axis=1)
+        n_end, replace=replace, random_state=random_state).rename({'mrna_end': 'end'}, axis=1)
     mrna_ends.loc[:, 'start'] = mrna_ends.end - length
     mrna_ends.loc[:, 'start'] = mrna_ends[['mrna_start', 'start']].max(axis=1)
     mrna_ends.drop(['mrna_start'], axis=1, inplace=True)
