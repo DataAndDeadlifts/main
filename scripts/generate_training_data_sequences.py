@@ -51,9 +51,11 @@ def get_chromosome_sequences_with_idx(args: dict) -> tuple[int, pd.DataFrame]:
             ), 
             pbar), 
         axis=1).values.tolist()
-    training_sequence_frame = pd.DataFrame(training_sequences, columns=['input', 'target', 'position'])
-    training_sequence_frame.loc[:, 'chromosome'] = chromosome
-    training_sequence_frame.loc[:, 'type'] = index['type']
+    training_sequence_frame = pd.concat(
+        [
+            index[['chromosome', 'geneid', 'transcriptid', 'type']],
+            pd.DataFrame(training_sequences, columns=['input', 'target', 'position']),
+        ], axis=1)
     pbar.close()
     return chromosome, training_sequence_frame
 
