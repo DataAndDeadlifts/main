@@ -2,11 +2,9 @@
 
 # %% auto 0
 __all__ = ['BOS_TOK', 'EOS_TOK', 'INTRON_TOK', 'UNK_TOK', 'NULL_TOK', 'PAD_TOK', 'MRNA_BOS_TOK', 'MRNA_EOS_TOK', 'get_gene',
-           'get_mrna_intron_locations', 'get_mrna_from_gene', 'sample_intron_edges', 'sample_introns',
-           'get_mrna_locations', 'sample_mrna', 'sample_mrna_edges', 'sample_sequences_idx',
-           'get_training_sequences_with_idx']
+           'get_mrna_intron_locations', 'get_mrna_from_gene', 'get_mrna_locations']
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 4
+# %% ../../../nbs/03 training.transcription.generation.ipynb 5
 from pathlib import Path
 import pandas as pd
 from pandas.errors import SettingWithCopyWarning
@@ -14,10 +12,11 @@ import random
 import warnings
 import time
 from datetime import timedelta
+from tqdm import tqdm
 
 from ...data.download import load_config, \
     get_latest_assembly_path, get_genomic_genbank_path
-from ...data.transcription import read_all_chromosome_gene_info
+from ...data.transcription import get_chromosome_genes
 from .index import get_intron_locations
 
 warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
@@ -31,11 +30,11 @@ PAD_TOK = "<pad>"
 MRNA_BOS_TOK = "<mrna-bos>"
 MRNA_EOS_TOK = "<mrna-eos>"
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 14
+# %% ../../../nbs/03 training.transcription.generation.ipynb 16
 def get_gene(genes: pd.DataFrame, geneid: str) -> str:
     return genes.set_index('geneid').loc[geneid].sequence
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 16
+# %% ../../../nbs/03 training.transcription.generation.ipynb 18
 def get_mrna_intron_locations(
         chromosome: str, gene_id: str, transcript_id: str, 
         intron_locations: pd.DataFrame = None, intron_locations_path: Path = None
@@ -52,7 +51,7 @@ def get_mrna_intron_locations(
     mrna_intron_locations_list = list(map(tuple, mrna_intron_locations[['intron_start', 'intron_end']].values.tolist()))
     return mrna_intron_locations_list
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 18
+# %% ../../../nbs/03 training.transcription.generation.ipynb 20
 def get_mrna_from_gene(
         gene_sequence: str, 
         mrna_start: int, mrna_end: int, 
@@ -87,69 +86,7 @@ def get_mrna_from_gene(
     mrna = [n if n != "T" else "U" for n in mrna]
     return gene, mrna
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 31
-def sample_intron_edges(
-        locations: pd.DataFrame, n: int, 
-        random_state: int = 42, offset: int = -32, length: int = 64) -> pd.DataFrame:
-    "Get training instances where either the start of end of an intron is in the center of the sequence."
-    start_n = int(n / 2)
-    end_n = n - start_n
-    replace = False if start_n > locations.shape[0] else True
-    starts = locations.sample(start_n, replace=replace, random_state=random_state)
-    ends = locations.sample(end_n, replace=replace, random_state=random_state)
-    frames = []
-    for f, slice_origin in zip([starts, ends], ['intron_start', 'intron_end']):
-        f_slice_start = (f[slice_origin] - f.mrna_start + offset).apply(lambda val: max(0, val))
-        f.loc[:, 'mrna_len'] = f.mrna_end - f.mrna_start
-        f.loc[:, 'start'] = f_slice_start
-        f.loc[:, 'end'] = (f_slice_start + length)
-        f.loc[:, 'end'] = f[['end', 'mrna_len']].min(axis=1)
-        f = f[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-        frames.append(f)
-    intron_edges = pd.concat(frames, axis=0)
-    intron_edges.loc[:, 'type'] = 'intron-edge'
-    return intron_edges
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 35
-def sample_introns(
-        locations: pd.DataFrame, n: int,
-        random_state: int = 42, length: int = 64) -> pd.DataFrame:
-    random.seed(random_state)
-    "Get training instances where most of the tokens are <intron>."
-    replace = False if n < locations.shape[0] else True
-    intron_sample = locations.sample(n, replace=replace, random_state=random_state)
-    # Handle sequences of varying sizes
-    intron_sample.loc[:, 'intron_length'] = intron_sample.intron_end - intron_sample.intron_start
-    intron_len_mask = intron_sample.intron_length <= length
-    small_introns = intron_sample[intron_len_mask]
-    large_introns = intron_sample[~intron_len_mask]
-    sample_frames = []
-    if small_introns.shape[0] > 0:
-        # For those introns less than length, center, return the whole thing
-        # Start at intron start
-        small_intron_slice_center = small_introns.intron_start
-        # Shift slice center half the distance of the target sequence
-        small_intron_slice_center = small_intron_slice_center.subtract(int(length / 2)).apply(lambda val: max(0, val))
-        small_introns.loc[:, 'start'] = small_intron_slice_center
-        small_introns.loc[:, 'end'] = small_introns.start + length
-        small_introns.loc[:, 'end'] = small_introns[['end', 'mrna_end']].min(axis=1)
-        small_introns = small_introns[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-        small_introns.loc[:, 'type'] = 'intron-small'
-        sample_frames.append(small_introns)
-    if large_introns.shape[0] > 0:
-        # For larger introns, identify the range we can slice to avoid edges
-        large_introns.loc[:, 'slice_max'] = large_introns.intron_end - length
-        large_introns.loc[:, 'slice_range'] = large_introns.apply(lambda row: range(row.intron_start, row.slice_max + 1, 1), axis=1)
-        large_introns.loc[:, 'start'] = large_introns.slice_range.apply(lambda r: random.choice(r))
-        large_introns.loc[:, 'end'] = large_introns.start + length
-        large_introns = large_introns[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-        large_introns.loc[:, 'type'] = 'intron'
-        sample_frames.append(large_introns)
-    # Randomly select a slice point within the identified range
-    introns = pd.concat(sample_frames, axis=0)
-    return introns
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 40
+# %% ../../../nbs/03 training.transcription.generation.ipynb 27
 def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
     "Get the mrna sequences between introns"
     # Get locations of transcribed dna
@@ -181,129 +118,3 @@ def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
         ], axis=0, ignore_index=True
     ).sort_values(['chromosome', 'geneid', 'transcriptid', 'start']).reset_index(drop=True)
     return all_mrna_sequences
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 44
-def sample_mrna(
-        mrna_locations: pd.DataFrame, n: int, 
-        random_state: int = 42, length: int = 64) -> pd.DataFrame:
-    "Get a sample or mrna sequence locations"
-    replace = False if n < mrna_locations.shape[0] else True
-    mrna_locations = mrna_locations.sample(n, replace=replace, random_state=random_state)
-    # For small mrna sections, do the same thing we did with the introns
-    # Handle sequences of varying sizes
-    mrna_locations.loc[:, 'length'] = mrna_locations.end - mrna_locations.start
-    mrna_len_mask = mrna_locations.length <= length
-    small_sequences = mrna_locations[mrna_len_mask]
-    large_sequences = mrna_locations[~mrna_len_mask]
-    sample_frames = []
-    if small_sequences.shape[0] > 0:
-        # For those introns less than length, center, return the whole thing
-        # Start at intron start
-        small_sequences_slice_center = small_sequences.start
-        # Shift slice center half the distance of the target sequence
-        small_sequences_slice_center = small_sequences_slice_center.subtract(int(length / 2)).apply(lambda val: max(0, val))
-        small_sequences.loc[:, 'start'] = small_sequences_slice_center
-        small_sequences.loc[:, 'end'] = small_sequences.start + length
-        small_sequences.loc[:, 'end'] = small_sequences[['end', 'mrna_end']].min(axis=1)
-        small_sequences = small_sequences[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-        small_sequences.loc[:, 'type'] = 'mrna-small'
-        sample_frames.append(small_sequences)
-    if large_sequences.shape[0] > 0:
-        # For larger introns, identify the range we can slice to avoid edges
-        large_sequences.loc[:, 'slice_max'] = large_sequences.end - length
-        large_sequences.loc[:, 'slice_range'] = large_sequences.apply(lambda row: range(row.start, row.slice_max + 1, 1), axis=1)
-        large_sequences.loc[:, 'start'] = large_sequences.slice_range.apply(lambda r: random.choice(r))
-        large_sequences.loc[:, 'end'] = large_sequences.start + length
-        large_sequences = large_sequences[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-        large_sequences.loc[:, 'type'] = 'mrna'
-        sample_frames.append(large_sequences)
-    # Randomly select a slice point within the identified range
-    return pd.concat(sample_frames, axis=0, ignore_index=True)
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 46
-def sample_mrna_edges(locations: pd.DataFrame, n: int, random_state: int = 42, length: int = 64) -> pd.DataFrame:
-    "Get the beginning and end of mrna"
-    locations = locations.drop_duplicates(
-        ['chromosome', 'geneid', 'transcriptid', 'mrna_start', 'mrna_end']
-    ).drop(['intron_start', 'intron_end'], axis=1).reset_index(drop=True)
-    n_start = int(n / 2)
-    n_end = n - n_start
-    replace = False if (n_start < locations.shape[0]) or (n_end < locations.shape[0]) else True
-    mrna_starts = locations.sample(
-        n_start, replace=replace, random_state=random_state
-        ).rename({'mrna_start': 'start'}, axis=1)
-    mrna_starts.loc[:, 'end'] = mrna_starts.start + length
-    mrna_starts.loc[:, 'end'] = mrna_starts[['mrna_end', 'end']].min(axis=1)
-    mrna_starts.drop(['mrna_end'], axis=1, inplace=True)
-    mrna_ends = locations.sample(
-        n_end, replace=replace, random_state=random_state).rename({'mrna_end': 'end'}, axis=1)
-    mrna_ends.loc[:, 'start'] = mrna_ends.end - length
-    mrna_ends.loc[:, 'start'] = mrna_ends[['mrna_start', 'start']].max(axis=1)
-    mrna_ends.drop(['mrna_start'], axis=1, inplace=True)
-    sample_edges = pd.concat([mrna_starts, mrna_ends], axis=0, ignore_index=True)
-    sample_edges = sample_edges[['chromosome', 'geneid', 'transcriptid', 'start', 'end']]
-    sample_edges.loc[:, 'type'] = 'mrna-edge'
-    return sample_edges
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 48
-def sample_sequences_idx(
-        n: int, 
-        intron_locations: pd.DataFrame,
-        mrna_locations: pd.DataFrame,
-        intron_prop: float, intron_edge_prop: float, 
-        mrna_prop: float, mrna_edge_prop: float,
-        random_state: int = 42,
-        length: int = 64) -> pd.DataFrame:
-    "Build training dataset from intron locations."
-    intron_sample = sample_introns(
-        intron_locations, int(n * intron_prop), 
-        random_state=random_state, length=length)
-    intron_edge_sample = sample_intron_edges(
-        intron_locations, int(n * intron_edge_prop), 
-        random_state=random_state, length=length)
-    mrna_sample = sample_mrna(mrna_locations, int(n * mrna_prop), 
-        random_state=random_state, length=length)
-    mrna_edge_sample = sample_mrna_edges(intron_locations, int(n * mrna_edge_prop),
-        random_state=random_state, length=length)
-    sample = pd.concat([
-        intron_sample,
-        intron_edge_sample,
-        mrna_sample,
-        mrna_edge_sample
-    ], axis=0, ignore_index=True)
-    return sample
-
-# %% ../../../nbs/03 training.transcription.generation.ipynb 51
-def get_training_sequences_with_idx(
-        chromosome: str, geneid: str, transcriptid: str, 
-        genes: pd.DataFrame,
-        intron_locations: pd.DataFrame,
-        start: int, end: int,
-        debug: bool = False
-        ) -> tuple[str, str, int]:
-    ""
-    time_start = time.time()
-    gene_sequence = get_gene(genes, geneid)
-    read_gene_time = time.time()
-    intron_locations = intron_locations[
-        (intron_locations.chromosome == chromosome) &
-        (intron_locations.geneid == geneid) &
-        (intron_locations.transcriptid == transcriptid)
-    ]
-    mrna_start = intron_locations.iloc[0, :].mrna_start
-    mrna_end = intron_locations.iloc[0, :].mrna_end
-    intron_list = get_mrna_intron_locations(
-        chromosome, geneid, transcriptid, intron_locations
-    )
-    mrna_intron_list_time = time.time()
-    annotated_gene, annotated_mrna = get_mrna_from_gene(
-        gene_sequence, 
-        mrna_start, mrna_end, 
-        intron_list)
-    annotation_sequences_time = time.time()
-    if debug:
-        print("Time to read gene:", timedelta(seconds=read_gene_time - time_start))
-        print("Time to get list of introns:", timedelta(seconds=mrna_intron_list_time - read_gene_time))
-        print("Time to annotate sequences:", timedelta(seconds=annotation_sequences_time - mrna_intron_list_time))
-        print("Total time:", timedelta(seconds=annotation_sequences_time - time_start))
-    return annotated_gene[start: end], annotated_mrna[start: end], start

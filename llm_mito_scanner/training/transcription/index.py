@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['random_state', 'get_intron_locations']
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 2
+# %% ../../../nbs/02 training.transcription.index.ipynb 3
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
@@ -15,10 +15,12 @@ from ...data.download import load_config, \
 
 random_state = 42
 
-# %% ../../../nbs/02 training.transcription.index.ipynb 7
-def get_intron_locations(path: Path) -> pd.DataFrame:
+# %% ../../../nbs/02 training.transcription.index.ipynb 8
+def get_intron_locations(directory: Path, chromosome: str = None) -> pd.DataFrame:
     # Index files
-    chromosome_parquet_files = list(path.glob("*.parquet"))
+    chromosome_parquet_files = list(directory.glob("*.parquet"))
+    if isinstance(chromosome, str):
+        chromosome_parquet_files = [p for p in chromosome_parquet_files if p.stem.endswith(chromosome)]
     frames = []
     for f in chromosome_parquet_files:
         f_frame = pd.read_parquet(f)

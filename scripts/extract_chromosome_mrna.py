@@ -7,8 +7,7 @@ from tqdm import tqdm
 
 warnings.simplefilter("ignore")
 
-from llm_mito_scanner.data.transcription import read_all_chromosome_gene_info
-from llm_mito_scanner.training.transcription.generation import get_mrna_from_gene, get_intron_locations, get_mrna_intron_locations
+from llm_mito_scanner.training.transcription.generation import get_mrna_from_gene, get_mrna_intron_locations
 
 
 def update_pbar(result, pbar):
