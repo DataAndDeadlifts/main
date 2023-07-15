@@ -25,8 +25,14 @@ def extract_chromosome_mrna(args: dict):
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
     mrna_data_path = transcription_data_path / "mrna"
-    chromosome_genes = pd.read_csv(gene_path / f"{chromosome}.csv").set_index("geneid").sequence.to_dict()
-    chromosome_intron_locations = pd.read_parquet(transcription_data_path / "intron_positions" / f"chromosome-{chromosome}.parquet")
+    chromosome_gene_path = gene_path / f"{chromosome}.csv"
+    if not chromosome_gene_path.exists():
+        return
+    chromosome_genes = pd.read_csv(chromosome_gene_path).set_index("geneid").sequence.to_dict()
+    intron_location_path = transcription_data_path / "intron_positions" / f"chromosome-{chromosome}.parquet"
+    if not intron_location_path.exists():
+        return
+    chromosome_intron_locations = pd.read_parquet(intron_location_path)
     chromosome_intron_locations.loc[:, 'chromosome'] = chromosome
     chromosome_mrna = chromosome_intron_locations[['geneid', 'transcriptid', 'mrna_start', 'mrna_end']].drop_duplicates()
     # Get mrna
@@ -58,6 +64,8 @@ def extract_chromosome_mrna(args: dict):
         pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
     pbar.update(chromosome_mrna.shape[0] - (chromosome_mrna.shape[0] // 10))
     pbar.close()
+    with (write_path / "SUCCESS").open("w+") as f:
+        pass
 
 
 @click.command()
@@ -74,7 +82,7 @@ def extract_mrna(assembly_path: Path):
     tasks = [{
         "chromosome": c,
         "assembly_path": assembly_path
-    } for c in chromosomes]
+    } for c in chromosomes if not (mrna_data_path / c / "SUCCESS").exists()]
     task_pbar = tqdm(total=len(tasks), ncols=80, desc="Extracting", leave=False)
     pool = Pool(6)
     try:
