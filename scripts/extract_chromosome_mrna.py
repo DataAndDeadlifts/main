@@ -1,13 +1,17 @@
 import click
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import warnings
-from multiprocessing import Pool, current_process
+from multiprocessing import Pool, current_process, Manager, Lock
 from tqdm import tqdm
+import sqlite3
 
 warnings.simplefilter("ignore")
 
-from llm_mito_scanner.training.transcription.generation import get_mrna_from_gene, get_mrna_intron_locations
+from llm_mito_scanner.data.transcription import get_genes
+from llm_mito_scanner.training.transcription.generation import \
+    get_mrna_from_gene, get_mrna_intron_locations, write_mrna
 
 
 def update_pbar(result, pbar):
@@ -19,69 +23,85 @@ def extract_chromosome_mrna(args: dict):
     process_idx = next(iter(current_process()._identity), 0)
     chromosome = args.get("chromosome")
     assembly_path = args.get("assembly_path")
-    batch_size = args.get('batch_size', 500)
-    gene_path = assembly_path / "genes"
+    batch_size = args.get('batch_size', 100)
+    lock = args.get("lock")
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
     mrna_data_path = transcription_data_path / "mrna"
-    chromosome_gene_path = gene_path / f"{chromosome}.csv"
-    if not chromosome_gene_path.exists():
-        return
-    chromosome_genes = pd.read_csv(chromosome_gene_path).set_index("geneid").sequence.to_dict()
+    gene_lookup = get_genes(assembly_path, chromosome=chromosome).set_index("geneid").sequence.to_dict()
     intron_location_path = transcription_data_path / "intron_positions" / f"chromosome-{chromosome}.parquet"
     if not intron_location_path.exists():
         return
-    chromosome_intron_locations = pd.read_parquet(intron_location_path)
-    chromosome_intron_locations.loc[:, 'chromosome'] = chromosome
-    chromosome_mrna = chromosome_intron_locations[['geneid', 'transcriptid', 'mrna_start', 'mrna_end']].drop_duplicates()
+    intron_locations = pd.read_parquet(intron_location_path)
+    intron_locations.loc[:, 'chromosome'] = chromosome
+    chromosome_mrna = intron_locations[['chromosome', 'geneid', 'transcriptid', 'mrna_start', 'mrna_end']].drop_duplicates()
+    # Remove already written mrna
+    con = sqlite3.connect(assembly_path / "mrna.db")
+    try:
+        already_written_mrna = pd.read_sql_query("SELECT DISTINCT chromosome, geneid, transcriptid from mrna", con=con)
+    except Exception as e:
+        raise e
+    finally:
+        con.close()
+    chromosome_mrna = chromosome_mrna.merge(
+        already_written_mrna, 
+        on=["chromosome", "geneid", "transcriptid"], 
+        how="left", indicator=True)
+    chromosome_mrna = chromosome_mrna[chromosome_mrna._merge == "left_only"]
+    if chromosome_mrna.shape[0] == 0:
+        return
     # Get mrna
-    pbar = tqdm(total=chromosome_mrna.shape[0], position=process_idx, desc=f"{chromosome}-generating", ncols=80, leave=False)
     write_path = mrna_data_path / chromosome
     if not write_path.exists():
         write_path.mkdir()
-    batch_counter = 1
-    row_batch = []
-    for i, (_, row) in enumerate(chromosome_mrna.iterrows()):
-        row_copy = row.copy()
-        _, mrna_sequence = get_mrna_from_gene(
-            chromosome_genes.get(row.geneid),
+    num_batches = max(1, chromosome_mrna.shape[0] / batch_size)
+    chromosome_mrna = np.array_split(chromosome_mrna, num_batches)
+    pbar = tqdm(total=len(chromosome_mrna), position=process_idx, desc=f"{chromosome}-generating", ncols=80, leave=False)
+    for mrna in chromosome_mrna:
+        mrna_sequences = mrna.apply(lambda row: get_mrna_from_gene(
+            gene_lookup.get(row.geneid),
             row.mrna_start, row.mrna_end,
-            get_mrna_intron_locations(chromosome, row.geneid, row.transcriptid, chromosome_intron_locations))
-        mrna_sequence = ",".join(mrna_sequence)
-        # row_copy.loc["gene"] = gene_sequence # We can get this elsewhere, lets save some disc space
-        row_copy.loc["mrna"] = mrna_sequence
-        row_batch.append(row_copy)
-        if len(row_batch) >= batch_size:
-            write_path_batch = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
-            pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
-            row_batch = []
-            batch_counter += 1
-        if i % 10 == 0:
-            pbar.update(10)
-    if len(row_batch) > 0:
-        write_path_batch = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
-        pd.DataFrame(row_batch).to_parquet(write_path_batch, index=False)
-    pbar.update(chromosome_mrna.shape[0] - (chromosome_mrna.shape[0] // 10))
+            get_mrna_intron_locations(
+                row.chromosome, row.geneid, row.transcriptid, 
+                intron_locations)), 
+        axis=1)
+        mrna_sequences.name = "sequence"
+        mrna_sequences = pd.concat(
+            [
+                mrna,
+                mrna_sequences
+            ],axis=1)
+        lock.acquire()
+        try:
+            write_mrna(assembly_path, chromosome, mrna_sequences)
+        except Exception as e:
+            raise e
+        finally:
+            lock.release()
+        pbar.update(1)
     pbar.close()
-    with (write_path / "SUCCESS").open("w+") as f:
-        pass
 
 
 @click.command()
 @click.argument("assembly-path", type=Path)
-def extract_mrna(assembly_path: Path):
-    training_data_path = assembly_path / "training"
-    transcription_data_path = training_data_path / "transcription"
-    mrna_data_path = transcription_data_path / "mrna"
-    if not mrna_data_path.exists():
-        mrna_data_path.mkdir()
-    genes_path = assembly_path / "genes"
-    gene_files = list(genes_path.glob("*.csv"))
-    chromosomes = [p.stem for p in gene_files]
+@click.option("--batch-size", type=int, default=100)
+def extract_mrna(assembly_path: Path, batch_size: int):
+    con = sqlite3.connect(assembly_path / "genes.db")
+    try:
+        chromosomes = pd.read_sql_query(
+            "SELECT DISTINCT chromosome from genes", con=con).chromosome.tolist()
+    except Exception as e:
+        raise e
+    finally:
+        con.close()
+    manager = Manager()
+    lock = manager.Lock()
     tasks = [{
         "chromosome": c,
-        "assembly_path": assembly_path
-    } for c in chromosomes if not (mrna_data_path / c / "SUCCESS").exists()]
+        "assembly_path": assembly_path,
+        "batch_size": batch_size,
+        "lock": lock
+    } for c in chromosomes]
     task_pbar = tqdm(total=len(tasks), ncols=80, desc="Extracting", leave=False)
     pool = Pool(6)
     try:

@@ -2,9 +2,8 @@
 
 # %% auto 0
 __all__ = ['sample_intron_edges', 'sample_introns', 'sample_mrna', 'sample_mrna_edges', 'sample_sequences_idx',
-           'make_mrna_file_index', 'get_mrna_file_index', 'make_gene_sequence_lookup', 'make_mrna_sequence_lookup',
-           'get_mrna_partitions', 'get_training_sequences_with_idx', 'get_index_sequences',
-           'get_chromosome_idx_sequences']
+           'make_mrna_file_index', 'get_mrna_file_index', 'get_training_sequences_with_idx', 'get_mrna_from_partition',
+           'get_gene_transcript_samples', 'get_gene_transcript_samples_wrapper']
 
 # %% ../../../nbs/04 training.transcription.sampling.ipynb 5
 from pathlib import Path
@@ -221,132 +220,64 @@ def get_mrna_file_index(transcription_path: Path) -> dict[tuple[str, str, str], 
     mrna_index.loc[:, 'path'] = mrna_index.path.apply(Path)
     return mrna_index.set_index(['chromosome', 'geneid', 'transcriptid']).path.to_dict()
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 40
-def make_gene_sequence_lookup(
-        genes: pd.DataFrame) -> dict[tuple[str, str], str]:
-    return genes.set_index(['chromosome', 'geneid']).sequence.to_dict()
-
-
-def make_mrna_sequence_lookup(
-        mrna: pd.DataFrame) -> dict[tuple[str, str, str], str]:
-    return mrna.set_index(['chromosome', 'geneid', 'transcriptid']).mrna.to_dict()
-
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 44
-def get_mrna_partitions(paths: list[Path], transcript_ids: list[str] = None) -> pd.DataFrame:
-    frames = []
-    for p in paths:
-        p_frame = pd.read_parquet(p)
-        if isinstance(transcript_ids, list):
-            p_frame = p_frame[p_frame.transcriptid.isin(transcript_ids)]
-            if p_frame.shape[0] == 0:
-                continue
-        p_chromosome = p.parent.name
-        p_frame.loc[:, 'chromosome'] = p_chromosome
-        frames.append(p_frame)
-    return pd.concat(frames, axis=0, ignore_index=True)
-
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 48
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 41
 def get_training_sequences_with_idx(
-        gene: str, mrna: str,
+        gene: list[str], mrna: list[str],
         start: int, end: int,
         ) -> tuple[str, str]:
     ""
-    return ",".join(list(gene)[start: end]), ",".join(mrna.split(",")[start: end])
+    return ",".join(gene[start: end]), ",".join(mrna[start: end])
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 55
-def get_index_sequences(
-        index: pd.DataFrame,
-        assembly_path: Path,
-        chromosome: str = None) -> pd.DataFrame:
-    # Make gene lookup
-    gene_lookup = get_chromosome_genes(
-        assembly_path, 
-        chromosome=chromosome, 
-        gene_ids=index.geneid.unique().tolist())
-    gene_lookup = make_gene_sequence_lookup(gene_lookup)
-    # Make mRNA lookup
-    mrna_lookup = get_mrna_partitions(
-        index.mrna_partition.unique().tolist(),
-        index.transcriptid.unique().tolist())
-    mrna_lookup = make_mrna_sequence_lookup(mrna_lookup)
-    sequences = index.apply(
-        lambda row: get_training_sequences_with_idx(
-            gene_lookup.get((row.chromosome, row.geneid)),
-            mrna_lookup.get((row.chromosome, row.geneid, row.transcriptid)),
-            row.start, row.end
-        ), axis=1).values.tolist()
-    sequences = pd.DataFrame(sequences, columns=['input', 'target'])
-    return pd.concat(
-        [
-            index,
-            sequences
-        ], axis=1, ignore_index=False)
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 43
+def get_mrna_from_partition(partition_path: Path, transcript_id: str) -> list[str]:
+    mrna = pd.read_parquet(partition_path)
+    mrna = mrna[mrna.transcriptid == transcript_id]
+    return mrna.mrna.iloc[0].split(",")
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 61
-def get_chromosome_idx_sequences(args: dict):
-    chromosome = args.get("chromosome")
-    index = args.get('index')
-    assembly_path = args.get("assembly")
-    pbar_position = args.get("position", 1)
-    chunk_size = args.get("chunk_size", 50)
-    write_size = args.get("write_size", 10000)
-    save = args.get("save", False)
-    index.sort_values(["transcriptid", "mrna_partition"], inplace=True)
-    write_path = assembly_path / "training/transcription/sequences" / chromosome
-    if not write_path.exists() and save:
-        write_path.mkdir(parents=True)
-    num_chunks = max(1, index.shape[0] / chunk_size)
-    index_chunks = []
-    curr_chunk = None
-    for p in index.mrna_partition.unique():
-        p_index = index[index.mrna_partition == p]
-        if p_index.shape[0] > chunk_size:
-            num_chunks = max(1, p_index.shape[0] / chunk_size)
-            p_index_chunks = np.array_split(p_index, num_chunks)
-            for p_chunk in p_index_chunks:
-                if curr_chunk is None:
-                    curr_chunk = p_chunk
-                else:
-                    curr_chunk = pd.concat([curr_chunk, p_chunk], axis=0, ignore_index=True)
-                    if curr_chunk.shape[0] >= chunk_size:
-                        index_chunks.append(curr_chunk)
-                        curr_chunk = None
-            index_chunks.extend(p_index_chunks)
-        else:
-            if curr_chunk is None:
-                curr_chunk = p_index
-            else:
-                curr_chunk = pd.concat([curr_chunk, p_index], axis=0, ignore_index=True)
-                if curr_chunk.shape[0] >= chunk_size:
-                    index_chunks.append(curr_chunk)
-                    curr_chunk = None
-    if curr_chunk is not None:
-        index_chunks.append(curr_chunk)
-    pbar = tqdm(
-        total=len(index_chunks), 
-        position=pbar_position, leave=False, ncols=80, desc=f"{chromosome}")
-    batch_counter = 1
-    sequences = []
-    for chunk in index_chunks:
-        chromosome_index_chunk_sequences = get_index_sequences(
-            chunk,
-            assembly_path,
-            chromosome=chromosome
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 50
+def get_gene_transcript_samples(
+    chromosome: str,
+    geneid: str,
+    transcript_id: str,
+    sample_idx: list[list[int, int]],
+    assembly_path: Path,
+    partition_path: Path,
+    sep: str = ",") -> list[tuple[int, str, str]]:
+    gene_str_list = get_chromosome_genes(assembly_path, chromosome=chromosome, gene_ids=[geneid]).sequence.iloc[0]
+    mrna_str_list = get_mrna_from_partition(partition_path=partition_path, transcript_id=transcript_id)
+    samples = []
+    for start, end in sample_idx:
+        samples.append(
+            (
+                sep.join(gene_str_list[start: end]),
+                sep.join(mrna_str_list[start: end])
+            )
         )
-        chromosome_index_chunk_sequences = chromosome_index_chunk_sequences[[
-            "chromosome", "geneid", "transcriptid",
-            "start", "end",
-            "type",
-            "input", "target"
-        ]]
-        sequences.append(chromosome_index_chunk_sequences)
-        if save and sum([f.shape[0] for f in sequences]) >= write_size:
-            write_path_chunk = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
-            pd.concat(sequences, axis=0, ignore_index=True).to_parquet(write_path_chunk, index=False)
-            sequences = []
-            batch_counter += 1
-        pbar.update(1)
-    if save and len(sequences) > 0:
-        write_path_chunk = write_path / f"partition-{str(batch_counter).zfill(3)}.parquet"
-        pd.concat(sequences, axis=0, ignore_index=True).to_parquet(write_path_chunk, index=False)
-    pbar.close()
+    return samples
+
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 56
+def get_gene_transcript_samples_wrapper(args) -> pd.DataFrame:
+    chromosome = args.get("chromosome")
+    gene_id = args.get('geneid')
+    transcript_id = args.get("transcriptid")
+    sample_idx = args.get("index")
+    index_types = args.get("types")
+    assembly_path = args.get("assembly_path")
+    partition_path = args.get("partition_path")
+    sequences_list = get_gene_transcript_samples(
+        chromosome,
+        gene_id,
+        transcript_id,
+        sample_idx,
+        assembly_path,
+        partition_path
+    )
+    sequences_frame = pd.DataFrame(
+        sequences_list, columns=['input', 'target'])
+    sequences_frame.loc[:, 'chromosome'] = chromosome
+    sequences_frame.loc[:, 'geneid'] = gene_id
+    sequences_frame.loc[:, 'transcriptid'] = transcript_id
+    sequences_frame.loc[:, 'type'] = index_types
+    idx_df = pd.DataFrame(sample_idx, columns=['start', 'end'])
+    sequences_frame = pd.concat([sequences_frame, idx_df], axis=1)
+    return sequences_frame

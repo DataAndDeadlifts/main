@@ -27,12 +27,12 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.filter_chromosome_features_by_type': ( '01 '
                                                                                                                                  'data.transcription.html#filter_chromosome_features_by_type',
                                                                                                                                  'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.format_gene_insert_values': ( '01 '
+                                                                                                                        'data.transcription.html#format_gene_insert_values',
+                                                                                                                        'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_chromosome_gene_info': ( '01 '
                                                                                                                        'data.transcription.html#get_chromosome_gene_info',
                                                                                                                        'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.get_chromosome_genes': ( '01 '
-                                                                                                                   'data.transcription.html#get_chromosome_genes',
-                                                                                                                   'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_feature_dbxref_xref': ( '01 '
                                                                                                                       'data.transcription.html#get_feature_dbxref_xref',
                                                                                                                       'llm_mito_scanner/data/transcription.py'),
@@ -54,6 +54,9 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.get_gene_seq_record': ( '01 '
                                                                                                                   'data.transcription.html#get_gene_seq_record',
                                                                                                                   'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.get_genes': ( '01 '
+                                                                                                        'data.transcription.html#get_genes',
+                                                                                                        'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.get_mrna_bookends': ( '01 '
                                                                                                                 'data.transcription.html#get_mrna_bookends',
                                                                                                                 'llm_mito_scanner/data/transcription.py'),
@@ -69,14 +72,20 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.normalize_mrna_positions': ( '01 '
                                                                                                                        'data.transcription.html#normalize_mrna_positions',
                                                                                                                        'llm_mito_scanner/data/transcription.py'),
-                                                     'llm_mito_scanner.data.transcription.write_chromosome_gene_info': ( '01 '
-                                                                                                                         'data.transcription.html#write_chromosome_gene_info',
-                                                                                                                         'llm_mito_scanner/data/transcription.py'),
+                                                     'llm_mito_scanner.data.transcription.write_genes': ( '01 '
+                                                                                                          'data.transcription.html#write_genes',
+                                                                                                          'llm_mito_scanner/data/transcription.py'),
                                                      'llm_mito_scanner.data.transcription.write_mrna_gene_relationships': ( '01 '
                                                                                                                             'data.transcription.html#write_mrna_gene_relationships',
                                                                                                                             'llm_mito_scanner/data/transcription.py')},
-            'llm_mito_scanner.training.transcription.generation': { 'llm_mito_scanner.training.transcription.generation.get_gene': ( '03 '
+            'llm_mito_scanner.training.transcription.generation': { 'llm_mito_scanner.training.transcription.generation.format_mrna_insert_values': ( '03 '
+                                                                                                                                                      'training.transcription.generation.html#format_mrna_insert_values',
+                                                                                                                                                      'llm_mito_scanner/training/transcription/generation.py'),
+                                                                    'llm_mito_scanner.training.transcription.generation.get_gene': ( '03 '
                                                                                                                                      'training.transcription.generation.html#get_gene',
+                                                                                                                                     'llm_mito_scanner/training/transcription/generation.py'),
+                                                                    'llm_mito_scanner.training.transcription.generation.get_mrna': ( '03 '
+                                                                                                                                     'training.transcription.generation.html#get_mrna',
                                                                                                                                      'llm_mito_scanner/training/transcription/generation.py'),
                                                                     'llm_mito_scanner.training.transcription.generation.get_mrna_from_gene': ( '03 '
                                                                                                                                                'training.transcription.generation.html#get_mrna_from_gene',
@@ -86,34 +95,31 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                                                       'llm_mito_scanner/training/transcription/generation.py'),
                                                                     'llm_mito_scanner.training.transcription.generation.get_mrna_locations': ( '03 '
                                                                                                                                                'training.transcription.generation.html#get_mrna_locations',
-                                                                                                                                               'llm_mito_scanner/training/transcription/generation.py')},
+                                                                                                                                               'llm_mito_scanner/training/transcription/generation.py'),
+                                                                    'llm_mito_scanner.training.transcription.generation.write_mrna': ( '03 '
+                                                                                                                                       'training.transcription.generation.html#write_mrna',
+                                                                                                                                       'llm_mito_scanner/training/transcription/generation.py')},
             'llm_mito_scanner.training.transcription.index': { 'llm_mito_scanner.training.transcription.index.get_intron_locations': ( '02 '
                                                                                                                                        'training.transcription.index.html#get_intron_locations',
                                                                                                                                        'llm_mito_scanner/training/transcription/index.py')},
-            'llm_mito_scanner.training.transcription.sampling': { 'llm_mito_scanner.training.transcription.sampling.get_chromosome_idx_sequences': ( '04 '
-                                                                                                                                                     'training.transcription.sampling.html#get_chromosome_idx_sequences',
-                                                                                                                                                     'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.get_index_sequences': ( '04 '
-                                                                                                                                            'training.transcription.sampling.html#get_index_sequences',
-                                                                                                                                            'llm_mito_scanner/training/transcription/sampling.py'),
+            'llm_mito_scanner.training.transcription.sampling': { 'llm_mito_scanner.training.transcription.sampling.get_gene_transcript_samples': ( '04 '
+                                                                                                                                                    'training.transcription.sampling.html#get_gene_transcript_samples',
+                                                                                                                                                    'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.get_gene_transcript_samples_wrapper': ( '04 '
+                                                                                                                                                            'training.transcription.sampling.html#get_gene_transcript_samples_wrapper',
+                                                                                                                                                            'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.get_mrna_file_index': ( '04 '
                                                                                                                                             'training.transcription.sampling.html#get_mrna_file_index',
                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.get_mrna_partitions': ( '04 '
-                                                                                                                                            'training.transcription.sampling.html#get_mrna_partitions',
-                                                                                                                                            'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.get_mrna_from_partition': ( '04 '
+                                                                                                                                                'training.transcription.sampling.html#get_mrna_from_partition',
+                                                                                                                                                'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.get_training_sequences_with_idx': ( '04 '
                                                                                                                                                         'training.transcription.sampling.html#get_training_sequences_with_idx',
                                                                                                                                                         'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.make_gene_sequence_lookup': ( '04 '
-                                                                                                                                                  'training.transcription.sampling.html#make_gene_sequence_lookup',
-                                                                                                                                                  'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.make_mrna_file_index': ( '04 '
                                                                                                                                              'training.transcription.sampling.html#make_mrna_file_index',
                                                                                                                                              'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.make_mrna_sequence_lookup': ( '04 '
-                                                                                                                                                  'training.transcription.sampling.html#make_mrna_sequence_lookup',
-                                                                                                                                                  'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.sample_intron_edges': ( '04 '
                                                                                                                                             'training.transcription.sampling.html#sample_intron_edges',
                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),

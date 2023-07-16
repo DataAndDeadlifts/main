@@ -2,21 +2,20 @@
 
 # %% auto 0
 __all__ = ['BOS_TOK', 'EOS_TOK', 'INTRON_TOK', 'UNK_TOK', 'NULL_TOK', 'PAD_TOK', 'MRNA_BOS_TOK', 'MRNA_EOS_TOK', 'get_gene',
-           'get_mrna_intron_locations', 'get_mrna_from_gene', 'get_mrna_locations']
+           'get_mrna_intron_locations', 'get_mrna_from_gene', 'format_mrna_insert_values', 'write_mrna', 'get_mrna',
+           'get_mrna_locations']
 
 # %% ../../../nbs/03 training.transcription.generation.ipynb 5
 from pathlib import Path
+import numpy as np
 import pandas as pd
 from pandas.errors import SettingWithCopyWarning
-import random
 import warnings
-import time
-from datetime import timedelta
-from tqdm import tqdm
+import sqlite3
 
 from ...data.download import load_config, \
     get_latest_assembly_path, get_genomic_genbank_path
-from ...data.transcription import get_chromosome_genes
+from ...data.transcription import get_genes
 from .index import get_intron_locations
 
 warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
@@ -31,8 +30,9 @@ MRNA_BOS_TOK = "<mrna-bos>"
 MRNA_EOS_TOK = "<mrna-eos>"
 
 # %% ../../../nbs/03 training.transcription.generation.ipynb 16
-def get_gene(genes: pd.DataFrame, geneid: str) -> str:
-    return genes.set_index('geneid').loc[geneid].sequence
+def get_gene(assembly_path: Path, geneid: str) -> str:
+    genes = get_genes(assembly_path, gene_ids=[geneid])
+    return genes.set_index('geneid').sequence.iloc[0]
 
 # %% ../../../nbs/03 training.transcription.generation.ipynb 18
 def get_mrna_intron_locations(
@@ -58,7 +58,8 @@ def get_mrna_from_gene(
         intron_locations: list[tuple[int, int]],
         intron_token: str = INTRON_TOK,
         untranscribed_token: str = NULL_TOK,
-        debug: bool = False) -> tuple[list[str], list[str]]:
+        sep: str = ",",
+        debug: bool = False) -> str:
     "Get annotated input and target sequences for a given mRNA."
     gene_sequence_length = len(gene_sequence)
     start_pad_len = mrna_start
@@ -82,11 +83,86 @@ def get_mrna_from_gene(
     if end_pad_len > 0:
         end_pad = ([untranscribed_token] * end_pad_len)
         mrna = mrna + end_pad
-    gene = list(gene_sequence)
-    mrna = [n if n != "T" else "U" for n in mrna]
-    return gene, mrna
+    return sep.join([n if n != "T" else "U" for n in mrna])
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 27
+# %% ../../../nbs/03 training.transcription.generation.ipynb 26
+def format_mrna_insert_values(
+        chromosome: str, gene_id: str, transcript_id: str, 
+        sequence: str, start: int, end: int) -> str:
+    return f"('{chromosome}', '{gene_id}', '{transcript_id}', '{sequence}', {start}, {end})"
+
+
+def write_mrna(assembly_path: Path, chromosome: str, mrna: pd.DataFrame, chunk_size: int = 1000):
+    mrna_db_path = assembly_path / "mrna.db"
+    con = sqlite3.connect(mrna_db_path)
+    cursor = con.cursor()
+    try:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mrna (
+                chromosome TEXT, geneid TEXT, transcriptid TEXT, sequence TEXT, start INT, end INT,
+                PRIMARY KEY (chromosome, geneid, transcriptid));""")
+        chunk_num = max(1, int(mrna.shape[0] / chunk_size))
+        mrna = np.array_split(mrna, chunk_num)
+        for mrna_chunk in mrna:
+            mrna_chunk_insert_statements = mrna_chunk.apply(
+                lambda row: format_mrna_insert_values(
+                    chromosome,
+                    row.geneid,
+                    row.transcriptid,
+                    row.sequence,
+                    row.mrna_start,
+                    row.mrna_end
+                ), axis=1).tolist()
+            batch_insert_script = """
+            BEGIN;
+            INSERT INTO mrna (chromosome, geneid, transcriptid, sequence, start, end) """ +\
+            "VALUES " + ",".join(mrna_chunk_insert_statements) +\
+            " ON CONFLICT(chromosome, geneid, transcriptid) DO NOTHING;" +\
+            "COMMIT;"
+            cursor.executescript(batch_insert_script)
+    except Exception as e:
+        raise e
+    finally:
+        cursor.close()
+
+# %% ../../../nbs/03 training.transcription.generation.ipynb 28
+def get_mrna(
+        assembly_path: Path, 
+        columns: list[str] = [
+            "chromosome", "geneid", "transcriptid", "sequence", 
+            "start", "end"],
+        chromosome: str = None, 
+        gene_ids: list[str] = None, 
+        transcript_ids: list[str] = None, 
+        limit: int = None) -> pd.DataFrame:
+    query = f"SELECT {','.join(columns)} FROM mrna"
+    if isinstance(chromosome, str):
+        query = query + f" WHERE chromosome='{chromosome}'"
+    if isinstance(gene_ids, list):
+        gene_ids_str = ",".join(["'" + i + "'" for i in gene_ids])
+        if "WHERE" in query:
+            query = query + f" AND geneid IN ({gene_ids_str})"
+        else:
+            query = query + f" WHERE geneid IN ({gene_ids_str})"
+    if isinstance(transcript_ids, list):
+        transcript_ids_str = ",".join(["'" + i + "'" for i in transcript_ids])
+        if "WHERE" in query:
+            query = query + f" AND transcriptid IN ({transcript_ids_str})"
+        else:
+            query = query + f" WHERE transcriptid IN ({transcript_ids_str})"
+    if isinstance(limit, int):
+        query = query + f" LIMIT {limit}"
+    try:
+        con = sqlite3.connect(assembly_path / "mrna.db")
+        mrna = pd.read_sql_query(query, con=con)
+    except Exception as e:
+        raise e
+    finally:
+        con.close()
+    return mrna
+
+# %% ../../../nbs/03 training.transcription.generation.ipynb 30
 def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
     "Get the mrna sequences between introns"
     # Get locations of transcribed dna

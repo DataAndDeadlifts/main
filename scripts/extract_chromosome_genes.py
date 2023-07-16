@@ -2,11 +2,16 @@ import os
 from pathlib import Path
 from multiprocessing import Pool, current_process
 import click
-from Bio import SeqIO
+import warnings
 from tqdm import tqdm
+import sqlite3
+import pandas as pd
+
+warnings.simplefilter("ignore")
+from Bio import SeqIO
 
 from llm_mito_scanner.data.transcription import get_chromosome_gene_info, \
-    write_chromosome_gene_info
+    write_genes
 
 
 threads = 8
@@ -29,17 +34,23 @@ def extract(assembly_path: Path):
     if len(chromosome_files) == 0:
         print(f"No files to process at path {chromosomes_path.resolve()}")
         return
-    genes_path = assembly_path / "genes"
-    already_written_chromosomes = [p.stem for p in genes_path.glob("*.csv")]
-    chromosome_files = [p for p in chromosome_files if p.stem not in already_written_chromosomes]
+    con = sqlite3.connect(assembly_path / "genes.db")
+    try:
+        written_chromosomes = pd.read_sql_query("SELECT DISTINCT chromosome from genes", con=con).chromosome.tolist()
+    except Exception as e:
+        raise e
+    finally:
+        con.close()
+    chromosome_files = [p for p in chromosome_files if p.stem not in written_chromosomes]
     if len(chromosome_files) == 0:
         print(f"All chromosome files processed")
         return
-    pool = Pool(os.cpu_count() - 1)
+    pool = Pool(6)
     pbar = tqdm(total=len(chromosome_files), desc="Overall", ncols=80, leave=True, position=0)
     try:
         for (path, frame) in pool.imap_unordered(get_and_write_all_chromosome_gene_info_wrapper, chromosome_files):
-            write_chromosome_gene_info(assembly_path, path.stem, frame)
+            if frame.shape[0] > 0:
+                write_genes(assembly_path, path.stem, frame)
             pbar.update(1)
     except Exception as e:
         raise e
