@@ -127,7 +127,11 @@ def get_genes(
             "chromosome", "geneid", "sequence", 
             "pos_strand", "neg_strand"
         ],
-        chromosome: str = None, gene_ids: list[str] = None, limit: int = None) -> pd.DataFrame:
+        chromosome: str = None, 
+        gene_ids: list[str] = None, 
+        limit: int = None,
+        con: sqlite3.Connection | None = None) -> pd.DataFrame:
+    close_con = True if con is None else False
     query = f"SELECT {','.join(columns)} FROM genes"
     if isinstance(chromosome, str):
         query = query + f" WHERE chromosome='{chromosome}'"
@@ -140,12 +144,14 @@ def get_genes(
     if isinstance(limit, int):
         query = query + f" LIMIT {limit}"
     try:
-        con = sqlite3.connect(assembly_path / "genes.db")
+        if con is None:
+            con = sqlite3.connect(assembly_path / "genes.db")
         genes = pd.read_sql_query(query, con=con)
     except Exception as e:
         raise e
     finally:
-        con.close()
+        if close_con:
+            con.close()
     return genes
 
 # %% ../../nbs/01 data.transcription.ipynb 35

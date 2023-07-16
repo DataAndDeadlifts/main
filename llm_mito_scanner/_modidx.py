@@ -102,24 +102,24 @@ d = { 'settings': { 'branch': 'main',
             'llm_mito_scanner.training.transcription.index': { 'llm_mito_scanner.training.transcription.index.get_intron_locations': ( '02 '
                                                                                                                                        'training.transcription.index.html#get_intron_locations',
                                                                                                                                        'llm_mito_scanner/training/transcription/index.py')},
-            'llm_mito_scanner.training.transcription.sampling': { 'llm_mito_scanner.training.transcription.sampling.get_gene_transcript_samples': ( '04 '
+            'llm_mito_scanner.training.transcription.sampling': { 'llm_mito_scanner.training.transcription.sampling.create_genes_index': ( '04 '
+                                                                                                                                           'training.transcription.sampling.html#create_genes_index',
+                                                                                                                                           'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.create_mrna_index': ( '04 '
+                                                                                                                                          'training.transcription.sampling.html#create_mrna_index',
+                                                                                                                                          'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.get_gene_transcript_samples': ( '04 '
                                                                                                                                                     'training.transcription.sampling.html#get_gene_transcript_samples',
                                                                                                                                                     'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.get_gene_transcript_samples_wrapper': ( '04 '
                                                                                                                                                             'training.transcription.sampling.html#get_gene_transcript_samples_wrapper',
                                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.get_mrna_file_index': ( '04 '
-                                                                                                                                            'training.transcription.sampling.html#get_mrna_file_index',
-                                                                                                                                            'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.get_mrna_from_partition': ( '04 '
-                                                                                                                                                'training.transcription.sampling.html#get_mrna_from_partition',
-                                                                                                                                                'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.get_multiple_training_sequences_wrapper': ( '04 '
+                                                                                                                                                                'training.transcription.sampling.html#get_multiple_training_sequences_wrapper',
+                                                                                                                                                                'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.get_training_sequences_with_idx': ( '04 '
                                                                                                                                                         'training.transcription.sampling.html#get_training_sequences_with_idx',
                                                                                                                                                         'llm_mito_scanner/training/transcription/sampling.py'),
-                                                                  'llm_mito_scanner.training.transcription.sampling.make_mrna_file_index': ( '04 '
-                                                                                                                                             'training.transcription.sampling.html#make_mrna_file_index',
-                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.sample_intron_edges': ( '04 '
                                                                                                                                             'training.transcription.sampling.html#sample_intron_edges',
                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),
@@ -134,7 +134,13 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                                           'llm_mito_scanner/training/transcription/sampling.py'),
                                                                   'llm_mito_scanner.training.transcription.sampling.sample_sequences_idx': ( '04 '
                                                                                                                                              'training.transcription.sampling.html#sample_sequences_idx',
-                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py')},
+                                                                                                                                             'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.tokenize_gene': ( '04 '
+                                                                                                                                      'training.transcription.sampling.html#tokenize_gene',
+                                                                                                                                      'llm_mito_scanner/training/transcription/sampling.py'),
+                                                                  'llm_mito_scanner.training.transcription.sampling.tokenize_mrna': ( '04 '
+                                                                                                                                      'training.transcription.sampling.html#tokenize_mrna',
+                                                                                                                                      'llm_mito_scanner/training/transcription/sampling.py')},
             'llm_mito_scanner.training.transcription.train': { 'llm_mito_scanner.training.transcription.train.PositionalEncoding': ( '05 '
                                                                                                                                      'training.transcription.train.html#positionalencoding',
                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),

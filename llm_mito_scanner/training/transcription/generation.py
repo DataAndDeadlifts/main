@@ -85,7 +85,7 @@ def get_mrna_from_gene(
         mrna = mrna + end_pad
     return sep.join([n if n != "T" else "U" for n in mrna])
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 26
+# %% ../../../nbs/03 training.transcription.generation.ipynb 31
 def format_mrna_insert_values(
         chromosome: str, gene_id: str, transcript_id: str, 
         sequence: str, start: int, end: int) -> str:
@@ -126,7 +126,7 @@ def write_mrna(assembly_path: Path, chromosome: str, mrna: pd.DataFrame, chunk_s
     finally:
         cursor.close()
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 28
+# %% ../../../nbs/03 training.transcription.generation.ipynb 33
 def get_mrna(
         assembly_path: Path, 
         columns: list[str] = [
@@ -135,7 +135,9 @@ def get_mrna(
         chromosome: str = None, 
         gene_ids: list[str] = None, 
         transcript_ids: list[str] = None, 
-        limit: int = None) -> pd.DataFrame:
+        limit: int = None,
+        con: sqlite3.Connection = None) -> pd.DataFrame:
+    close_con = True if con is None else False
     query = f"SELECT {','.join(columns)} FROM mrna"
     if isinstance(chromosome, str):
         query = query + f" WHERE chromosome='{chromosome}'"
@@ -154,15 +156,17 @@ def get_mrna(
     if isinstance(limit, int):
         query = query + f" LIMIT {limit}"
     try:
-        con = sqlite3.connect(assembly_path / "mrna.db")
+        if con is None:
+            con = sqlite3.connect(assembly_path / "mrna.db")
         mrna = pd.read_sql_query(query, con=con)
     except Exception as e:
         raise e
     finally:
-        con.close()
+        if close_con:
+            con.close()
     return mrna
 
-# %% ../../../nbs/03 training.transcription.generation.ipynb 30
+# %% ../../../nbs/03 training.transcription.generation.ipynb 35
 def get_mrna_locations(locations: pd.DataFrame) -> pd.DataFrame:
     "Get the mrna sequences between introns"
     # Get locations of transcribed dna

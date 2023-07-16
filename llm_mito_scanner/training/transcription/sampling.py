@@ -2,8 +2,9 @@
 
 # %% auto 0
 __all__ = ['sample_intron_edges', 'sample_introns', 'sample_mrna', 'sample_mrna_edges', 'sample_sequences_idx',
-           'make_mrna_file_index', 'get_mrna_file_index', 'get_training_sequences_with_idx', 'get_mrna_from_partition',
-           'get_gene_transcript_samples', 'get_gene_transcript_samples_wrapper']
+           'get_training_sequences_with_idx', 'tokenize_gene', 'tokenize_mrna', 'get_gene_transcript_samples',
+           'get_gene_transcript_samples_wrapper', 'get_multiple_training_sequences_wrapper', 'create_genes_index',
+           'create_mrna_index']
 
 # %% ../../../nbs/04 training.transcription.sampling.ipynb 5
 from pathlib import Path
@@ -12,17 +13,17 @@ import pandas as pd
 from pandas.errors import SettingWithCopyWarning
 import random
 import warnings
-import time
-from datetime import timedelta
 from tqdm import tqdm
+from multiprocessing import current_process
+import sqlite3
 
 warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
 
 from ...data.download import load_config, \
     get_latest_assembly_path, get_genomic_genbank_path
-from ...data.transcription import get_chromosome_genes
+from ...data.transcription import get_genes
 from .index import get_intron_locations
-from .generation import get_mrna_locations, get_gene
+from .generation import get_mrna_locations, get_mrna
 
 # %% ../../../nbs/04 training.transcription.sampling.ipynb 16
 def sample_intron_edges(
@@ -195,32 +196,7 @@ def sample_sequences_idx(
     ], axis=0, ignore_index=True)
     return sample
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 35
-def make_mrna_file_index(mrna_path: Path) -> pd.DataFrame:
-    ""
-    parquet_files = list(mrna_path.glob("*/*.parquet"))
-    index_frames = []
-    for p in parquet_files:
-        p_chromosome = p.parent.name
-        p_frame = pd.read_parquet(p, columns=['geneid', 'transcriptid'])
-        p_frame.loc[:, 'chromosome'] = p_chromosome
-        p_frame.loc[:, 'path'] = p
-        index_frames.append(p_frame)
-    return pd.concat(index_frames, axis=0, ignore_index=True)
-
-
-def get_mrna_file_index(transcription_path: Path) -> dict[tuple[str, str, str], Path]:
-    "Get the file a particular mRNA resides in."
-    mrna_index_path = transcription_path / "mrna_index.csv"
-    if not mrna_index_path.exists():
-        mrna_index = make_mrna_file_index(transcription_path / "mrna")
-        mrna_index.to_csv(mrna_index_path)
-    else:
-        mrna_index = pd.read_csv(mrna_index_path)
-    mrna_index.loc[:, 'path'] = mrna_index.path.apply(Path)
-    return mrna_index.set_index(['chromosome', 'geneid', 'transcriptid']).path.to_dict()
-
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 41
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 36
 def get_training_sequences_with_idx(
         gene: list[str], mrna: list[str],
         start: int, end: int,
@@ -228,23 +204,35 @@ def get_training_sequences_with_idx(
     ""
     return ",".join(gene[start: end]), ",".join(mrna[start: end])
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 43
-def get_mrna_from_partition(partition_path: Path, transcript_id: str) -> list[str]:
-    mrna = pd.read_parquet(partition_path)
-    mrna = mrna[mrna.transcriptid == transcript_id]
-    return mrna.mrna.iloc[0].split(",")
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 38
+def tokenize_gene(gene: str) -> list[str]:
+    return list(gene)
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 50
+
+def tokenize_mrna(mrna: str) -> list[str]:
+    return mrna.split(',')
+
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 46
 def get_gene_transcript_samples(
     chromosome: str,
     geneid: str,
     transcript_id: str,
     sample_idx: list[list[int, int]],
     assembly_path: Path,
-    partition_path: Path,
-    sep: str = ",") -> list[tuple[int, str, str]]:
-    gene_str_list = get_chromosome_genes(assembly_path, chromosome=chromosome, gene_ids=[geneid]).sequence.iloc[0]
-    mrna_str_list = get_mrna_from_partition(partition_path=partition_path, transcript_id=transcript_id)
+    sep: str = ",",
+    gene_connection: sqlite3.Connection | None = None,
+    mrna_connection: sqlite3.Connection | None = None) -> list[tuple[int, str, str]]:
+    gene_str_list = tokenize_gene(
+        get_genes(
+            assembly_path, chromosome=chromosome, 
+            gene_ids=[geneid],
+            con=gene_connection
+        ).sequence.iloc[0])
+    mrna_str_list = tokenize_mrna(
+        get_mrna(
+            assembly_path, chromosome=chromosome, 
+            gene_ids=[geneid], transcript_ids=[transcript_id],
+            con=mrna_connection).sequence.iloc[0])
     samples = []
     for start, end in sample_idx:
         samples.append(
@@ -255,7 +243,7 @@ def get_gene_transcript_samples(
         )
     return samples
 
-# %% ../../../nbs/04 training.transcription.sampling.ipynb 56
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 52
 def get_gene_transcript_samples_wrapper(args) -> pd.DataFrame:
     chromosome = args.get("chromosome")
     gene_id = args.get('geneid')
@@ -263,14 +251,12 @@ def get_gene_transcript_samples_wrapper(args) -> pd.DataFrame:
     sample_idx = args.get("index")
     index_types = args.get("types")
     assembly_path = args.get("assembly_path")
-    partition_path = args.get("partition_path")
     sequences_list = get_gene_transcript_samples(
         chromosome,
         gene_id,
         transcript_id,
         sample_idx,
-        assembly_path,
-        partition_path
+        assembly_path
     )
     sequences_frame = pd.DataFrame(
         sequences_list, columns=['input', 'target'])
@@ -281,3 +267,86 @@ def get_gene_transcript_samples_wrapper(args) -> pd.DataFrame:
     idx_df = pd.DataFrame(sample_idx, columns=['start', 'end'])
     sequences_frame = pd.concat([sequences_frame, idx_df], axis=1)
     return sequences_frame
+
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 56
+def get_multiple_training_sequences_wrapper(args: dict):
+    "Receive a chunk of training indices, batch process them and write to disc."
+    process_idx = next(iter(current_process()._identity), 0)
+    index = args.get("index")
+    assembly_path = args.get("assembly_path")
+    epoch = args.get("epoch")
+    chunk_size = args.get("chunk_size", 50)
+    batch_size = args.get("batch_size", 10000)
+    save = args.get("save", True)
+    # Make sqlite3 connections
+    genes_connection = sqlite3.connect(assembly_path / "genes.db")
+    mrna_connection = sqlite3.connect(assembly_path / "mrna.db")
+    write_path = assembly_path / "training/transcription/sequences" / f"epoch-{epoch}"
+    if not write_path.exists():
+        write_path.mkdir()
+    # Split up index to chunks
+    num_chunks = max(1, int(index.shape[0] / chunk_size))
+    index = np.array_split(index, num_chunks)
+    # Process chunks
+    batch = []
+    batch_row_counter = 0
+    batch_counter = 1
+    pbar = tqdm(
+        total=len(index), ncols=80, 
+        desc=f"Process-{process_idx}-Generating", 
+        position=process_idx)
+    try:
+        for chunk in index:
+            # Get input, target sequences
+            sequences = chunk.apply(
+                lambda row: get_gene_transcript_samples(
+                    row.chromosome,
+                    row.geneid,
+                    row.transcriptid,
+                    row.idx,
+                    assembly_path
+                ), 
+                axis=1)
+            # Put into dataframe
+            sequences = pd.concat(
+                sequences.apply(
+                    pd.DataFrame, columns=['input', 'target']
+                ).values.tolist(), 
+                axis=0)
+            batch.append(sequences)
+            batch_row_counter += sequences.shape[0]
+            pbar.update(1)
+            if (batch_row_counter >= batch_size) and save:
+                pbar.set_description(f"Process-{process_idx}-Writing")
+                # Write batch
+                batch = pd.concat(batch, axis=0, ignore_index=True)
+                batch_write_path = write_path / f"batch-{batch_counter}"
+                batch.to_parquet(batch_write_path, index=False)
+                batch = []
+                batch_row_counter = 0
+                batch_counter += 1
+                pbar.set_description(f"Process-{process_idx}-Generating")
+        # Write final batch
+        if (len(batch) > 0) and save:
+            pbar.set_description(f"Process-{process_idx}-Writing")
+            batch = pd.concat(batch, axis=0, ignore_index=True)
+            batch_write_path = write_path / f"batch-{batch_counter}"
+            batch.to_parquet(batch_write_path, index=False)
+    except Exception as e:
+        raise e
+    finally:
+        genes_connection.close()
+        mrna_connection.close()
+        pbar.close()
+
+# %% ../../../nbs/04 training.transcription.sampling.ipynb 59
+def create_genes_index(assembly_path):
+    con = sqlite3.connect(assembly_path / "genes.db")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS genes_index ON genes(chromosome, geneid);")
+    con.close()
+
+
+def create_mrna_index(assembly_path):
+    con = sqlite3.connect(assembly_path / "mrna.db")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS mrna_index ON mrna(chromosome, geneid, transcriptid);")
+    con.close()
