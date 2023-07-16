@@ -38,15 +38,20 @@ def extract_chromosome_mrna(args: dict):
     # Remove already written mrna
     con = sqlite3.connect(assembly_path / "mrna.db")
     try:
-        already_written_mrna = pd.read_sql_query("SELECT DISTINCT chromosome, geneid, transcriptid from mrna", con=con)
+        lock.acquire()
+        already_written_mrna = pd.read_sql_query(
+            f"SELECT DISTINCT chromosome, geneid, transcriptid from mrna WHERE chromosome = '{chromosome}'", 
+            con=con)
     except Exception as e:
         raise e
     finally:
         con.close()
+        lock.release()
     chromosome_mrna = chromosome_mrna.merge(
         already_written_mrna, 
         on=["chromosome", "geneid", "transcriptid"], 
         how="left", indicator=True)
+    del already_written_mrna
     chromosome_mrna = chromosome_mrna[chromosome_mrna._merge == "left_only"]
     if chromosome_mrna.shape[0] == 0:
         return
@@ -73,7 +78,9 @@ def extract_chromosome_mrna(args: dict):
             ],axis=1)
         lock.acquire()
         try:
-            write_mrna(assembly_path, chromosome, mrna_sequences)
+            write_mrna(assembly_path, chromosome, mrna_sequences, chunk_size=100)
+        except sqlite3.DataError as d:
+            raise ValueError(f"Failed writing mRNA for chromosome {chromosome}") from d
         except Exception as e:
             raise e
         finally:
@@ -103,7 +110,7 @@ def extract_mrna(assembly_path: Path, batch_size: int):
         "lock": lock
     } for c in chromosomes]
     task_pbar = tqdm(total=len(tasks), ncols=80, desc="Extracting", leave=False)
-    pool = Pool(6)
+    pool = Pool(4)
     try:
         for _ in pool.imap_unordered(extract_chromosome_mrna, tasks):
             task_pbar.update(1)
