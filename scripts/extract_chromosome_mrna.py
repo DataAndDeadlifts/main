@@ -78,7 +78,7 @@ def extract_chromosome_mrna(args: dict):
             ],axis=1)
         lock.acquire()
         try:
-            write_mrna(assembly_path, chromosome, mrna_sequences, chunk_size=100)
+            write_mrna(assembly_path, chromosome, mrna_sequences, chunk_size=50)
         except sqlite3.DataError as d:
             raise ValueError(f"Failed writing mRNA for chromosome {chromosome}") from d
         except Exception as e:
