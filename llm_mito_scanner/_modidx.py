@@ -78,6 +78,18 @@ d = { 'settings': { 'branch': 'main',
                                                      'llm_mito_scanner.data.transcription.write_mrna_gene_relationships': ( '01 '
                                                                                                                             'data.transcription.html#write_mrna_gene_relationships',
                                                                                                                             'llm_mito_scanner/data/transcription.py')},
+            'llm_mito_scanner.evaluation.transcription': { 'llm_mito_scanner.evaluation.transcription.get_latest_checkpoint': ( '06 '
+                                                                                                                                'evaluation.transcription.html#get_latest_checkpoint',
+                                                                                                                                'llm_mito_scanner/evaluation/transcription.py'),
+                                                           'llm_mito_scanner.evaluation.transcription.get_latest_model': ( '06 '
+                                                                                                                           'evaluation.transcription.html#get_latest_model',
+                                                                                                                           'llm_mito_scanner/evaluation/transcription.py'),
+                                                           'llm_mito_scanner.evaluation.transcription.transcribe': ( '06 '
+                                                                                                                     'evaluation.transcription.html#transcribe',
+                                                                                                                     'llm_mito_scanner/evaluation/transcription.py'),
+                                                           'llm_mito_scanner.evaluation.transcription.update_pbar': ( '06 '
+                                                                                                                      'evaluation.transcription.html#update_pbar',
+                                                                                                                      'llm_mito_scanner/evaluation/transcription.py')},
             'llm_mito_scanner.training.transcription.generation': { 'llm_mito_scanner.training.transcription.generation.format_mrna_insert_values': ( '03 '
                                                                                                                                                       'training.transcription.generation.html#format_mrna_insert_values',
                                                                                                                                                       'llm_mito_scanner/training/transcription/generation.py'),
@@ -186,9 +198,6 @@ d = { 'settings': { 'branch': 'main',
                                                                'llm_mito_scanner.training.transcription.train.TranscriptionDataset.__len__': ( '05 '
                                                                                                                                                'training.transcription.train.html#transcriptiondataset.__len__',
                                                                                                                                                'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.TranscriptionDataset.save_index': ( '05 '
-                                                                                                                                                  'training.transcription.train.html#transcriptiondataset.save_index',
-                                                                                                                                                  'llm_mito_scanner/training/transcription/train.py'),
                                                                'llm_mito_scanner.training.transcription.train.build_vocab': ( '05 '
                                                                                                                               'training.transcription.train.html#build_vocab',
                                                                                                                               'llm_mito_scanner/training/transcription/train.py'),
@@ -207,21 +216,18 @@ d = { 'settings': { 'branch': 'main',
                                                                'llm_mito_scanner.training.transcription.train.generate_square_subsequent_mask': ( '05 '
                                                                                                                                                   'training.transcription.train.html#generate_square_subsequent_mask',
                                                                                                                                                   'llm_mito_scanner/training/transcription/train.py'),
+                                                               'llm_mito_scanner.training.transcription.train.get_text_transform': ( '05 '
+                                                                                                                                     'training.transcription.train.html#get_text_transform',
+                                                                                                                                     'llm_mito_scanner/training/transcription/train.py'),
                                                                'llm_mito_scanner.training.transcription.train.get_vocab': ( '05 '
                                                                                                                             'training.transcription.train.html#get_vocab',
                                                                                                                             'llm_mito_scanner/training/transcription/train.py'),
                                                                'llm_mito_scanner.training.transcription.train.greedy_decode': ( '05 '
                                                                                                                                 'training.transcription.train.html#greedy_decode',
                                                                                                                                 'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.list_string_to_list': ( '05 '
-                                                                                                                                      'training.transcription.train.html#list_string_to_list',
-                                                                                                                                      'llm_mito_scanner/training/transcription/train.py'),
                                                                'llm_mito_scanner.training.transcription.train.sequential_transforms': ( '05 '
                                                                                                                                         'training.transcription.train.html#sequential_transforms',
                                                                                                                                         'llm_mito_scanner/training/transcription/train.py'),
-                                                               'llm_mito_scanner.training.transcription.train.set_text_transform': ( '05 '
-                                                                                                                                     'training.transcription.train.html#set_text_transform',
-                                                                                                                                     'llm_mito_scanner/training/transcription/train.py'),
                                                                'llm_mito_scanner.training.transcription.train.set_vocab_idx': ( '05 '
                                                                                                                                 'training.transcription.train.html#set_vocab_idx',
                                                                                                                                 'llm_mito_scanner/training/transcription/train.py'),

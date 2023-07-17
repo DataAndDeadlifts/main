@@ -293,7 +293,7 @@ def get_multiple_training_sequences_wrapper(args: dict):
     batch_counter = 1
     pbar = tqdm(
         total=len(index), ncols=80, 
-        desc=f"Process-{process_idx}-Generating", 
+        desc=f"Epoch-{epoch}", 
         position=process_idx)
     try:
         for chunk in index:
@@ -317,20 +317,17 @@ def get_multiple_training_sequences_wrapper(args: dict):
             batch_row_counter += sequences.shape[0]
             pbar.update(1)
             if (batch_row_counter >= batch_size) and save:
-                pbar.set_description(f"Process-{process_idx}-Writing")
                 # Write batch
                 batch = pd.concat(batch, axis=0, ignore_index=True)
-                batch_write_path = write_path / f"batch-{batch_counter}"
+                batch_write_path = write_path / f"batch-{batch_counter}.parquet"
                 batch.to_parquet(batch_write_path, index=False)
                 batch = []
                 batch_row_counter = 0
                 batch_counter += 1
-                pbar.set_description(f"Process-{process_idx}-Generating")
         # Write final batch
         if (len(batch) > 0) and save:
-            pbar.set_description(f"Process-{process_idx}-Writing")
             batch = pd.concat(batch, axis=0, ignore_index=True)
-            batch_write_path = write_path / f"batch-{batch_counter}"
+            batch_write_path = write_path / f"batch-{batch_counter}.parquet"
             batch.to_parquet(batch_write_path, index=False)
     except Exception as e:
         raise e

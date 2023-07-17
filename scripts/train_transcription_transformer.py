@@ -5,6 +5,7 @@ from torch.optim import Adam
 import torch
 import torch.nn as nn
 import warnings
+import pandas as pd
 
 warnings.simplefilter("ignore")
 
@@ -16,7 +17,6 @@ from llm_mito_scanner.training.transcription.train import get_vocab, \
 
 @click.command()
 @click.argument("assembly_path", type=Path)
-@click.option("--epochs", type=int, default=1)
 @click.option("--embedding_size", type=int, default=32)
 @click.option("--nheads", type=int, default=4)
 @click.option("--feed-forward-dim", type=int, default=32)
@@ -24,13 +24,14 @@ from llm_mito_scanner.training.transcription.train import get_vocab, \
 @click.option("--decoder-layers", type=int, default=1)
 @click.option("--batch-size", type=int, default=32)
 @click.option("--batch-limit", type=int, default=None)
+@click.option("--random-state", type=int, default=42)
 def train(assembly_path: Path, 
-          epochs: int, 
           embedding_size: int, nheads: int, feed_forward_dim: int,
           encoder_layers: int, decoder_layers: int,
-          batch_size: int, batch_limit: int | None):
+          batch_size: int, batch_limit: int | None, random_state: int):
     training_data_path = assembly_path / "training"
     transcription_data_path = training_data_path / "transcription"
+    sequences_data_path = transcription_data_path / "sequences"
     # Load vocab
     vocab = get_vocab(transcription_data_path)
     # Set properties of vocab
@@ -50,7 +51,14 @@ def train(assembly_path: Path,
     loss_fn = nn.CrossEntropyLoss(ignore_index=vocab[PAD_TOK])
     # Define optimizer
     optimizer = Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-    # Start training
+    # Discover epochs
+    epoch_paths = list(sequences_data_path.glob("epoch-*"))
+    training_data_df = pd.DataFrame(epoch_paths, columns=['epoch_path'])
+    training_data_df.loc[:, 'epoch'] = training_data_df.epoch_path.apply(lambda p: p.name.replace("epoch-", "")).astype(int)
+    training_data_df.sort_values("epoch", inplace=True)
+    training_data_df.loc[:, 'batch_paths'] = training_data_df.epoch_path.apply(lambda p: list(p.glob("batch-*")))
+    training_data_df.set_index('epoch', inplace=True)
+    epochs = training_data_df.shape[0]
     training_pbar = tqdm(total=epochs, leave=True, ncols=80)
     # Save state every epoch
     checkpoint_path = transcription_data_path / "checkpoints"
@@ -67,9 +75,10 @@ def train(assembly_path: Path,
         state['epoch'] = epoch
         state['loss'] = None
         state['eval'] = None
+        paths = training_data_df.loc[epoch, "batch_paths"]
         try:
             training_pbar.set_description("Training")
-            train_dataset = TranscriptionDataset(transcription_data_path / "training_data.csv", True)
+            train_dataset = TranscriptionDataset(paths, True, random_state=random_state)
             train_loss = train_epoch(
                 transformer, optimizer, loss_fn, 
                 train_dataset,
@@ -80,7 +89,7 @@ def train(assembly_path: Path,
             pass
         try:
             training_pbar.set_description("Evaluating")
-            eval_dataset = TranscriptionDataset(transcription_data_path / "training_data.csv", False)
+            eval_dataset = TranscriptionDataset(paths, False, random_state=random_state)
             val_loss = evaluate(
                 transformer, loss_fn,
                 eval_dataset,
